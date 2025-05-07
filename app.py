@@ -5,29 +5,25 @@ from models.user import db, User
 from config import Config
 import secrets
 from markupsafe import Markup
+from dotenv import load_dotenv
 
-# 設定允許在開發環境中使用 HTTP (僅適用於開發階段)
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
-os.environ['FLASK_DEBUG'] = '1'
+#
 
 def create_app(config_class=Config):
+    # Load environment variables from .env file
+    load_dotenv()  
     app = Flask(__name__)
     app.config.from_object(config_class)
     
-    # 確保有一個強密鑰
-    if app.config['SECRET_KEY']:
-        app.config['SECRET_KEY'] = secrets.token_hex(16)
-    else:
-        raise BaseException("SECRET_KEY NOT FOUND!")
+    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(16))
     
-    # 初始化資料庫
+    # Initialize SQLAlchemy database
     db.init_app(app)
     
-    # 初始化登入管理
+    # Initialize Flask-Login manager
     login_manager = LoginManager()
     login_manager.init_app(app)
-    # 更新登入視圖路徑至新的後台路徑
+    # Set login view to the admin login route
     login_manager.login_view = 'main.admin_login'
     login_manager.login_message = '請先登入以訪問此頁面'
     login_manager.login_message_category = 'info'
@@ -36,7 +32,7 @@ def create_app(config_class=Config):
     def load_user(user_id):
         return User.query.get(int(user_id))
     
-    # 添加 nl2br 過濾器以支援換行符顯示
+    # Add nl2br filter to convert newlines to <br> tags
     @app.template_filter('nl2br')
     def nl2br_filter(s):
         if not s:
@@ -44,19 +40,18 @@ def create_app(config_class=Config):
         return Markup(s.replace('\n', '<br>'))
 
     with app.app_context():
-        # 在這裡導入藍圖以避免循環導入
+        # Import blueprints here to avoid circular imports
         from routes.main import main
         from routes.auth import auth_bp
         
-        # 註冊藍圖
+        # Register blueprints
         app.register_blueprint(main)
         app.register_blueprint(auth_bp)
         
-        # 確保資料庫表存在
-        db.create_all()
+        # Ensure database tables exist (disabled in production)
+        # db.create_all()  # 已部署環境中不應自動創建資料表
         
-        # 為開發階段添加一些調試路由
-        # TODO: Route 全都放一個資料夾
+        # Add development-only debug routes
         if app.debug:
             @app.route('/debug/session')
             def debug_session():
@@ -64,7 +59,10 @@ def create_app(config_class=Config):
     
     return app
 
+# Create a global Flask app instance for use with Gunicorn or development
+app = create_app()
+
+
 if __name__ == '__main__':
-    app = create_app()
-    print(f"Flask 應用已啟動! 訪問: http://127.0.0.1:5000")
-    app.run(debug=True)
+    print("Flask 应用已启动! 访问: http://0.0.0.0:2005 或 http://<服务器IP>:2005")
+    app.run(host='0.0.0.0', debug=False, port=2005)
