@@ -1,0 +1,1149 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/gradients.css') }}">
+<style>
+    /* 基本樣式 */
+    .dashboard-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .card {
+        border: none;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #eaecef;
+        padding: 15px 20px;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+    
+    /* 社交媒體連結樣式 */
+    .social-link-item {
+        position: relative;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        border: 1px solid #eaecef;
+        transition: all 0.2s ease;
+    }
+    
+    .social-link-item:hover {
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    .social-icon-select {
+        cursor: pointer;
+        background-color: #e9ecef;
+        border-radius: 5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+        width: 50px; /* 固定寬度 */
+        justify-content: center;
+        flex-shrink: 0; /* 防止縮小 */
+    }
+    
+    .social-icon-select:hover {
+        background-color: #dee2e6;
+    }
+    
+    /* 修改下拉選單，讓它能夠超出父容器 */
+    .icon-dropdown-menu {
+        max-height: 120px; /* 改為大約三個選項的高度 */
+        overflow-y: auto;
+        min-width: 250px; /* 設定最小寬度 */
+        width: auto !important; /* 讓寬度自動適應內容 */
+        max-width: none !重要; /* 移除最大寬度限制，加強優先級 */
+        position: absolute; /* 絕對定位而非固定定位，避免滾動問題 */
+        z-index: 1050 !重要; /* 確保顯示在最上層 */
+        transform: none !重要; /* 重置可能的變換 */
+        overflow: visible !重要; /* 確保內容不被切斷 */
+    }
+    
+    /* 確保下拉選單內容可見且不受父容器限制 */
+    .dropdown-menu.icon-dropdown-menu.show {
+        display: block !重要;
+        visibility: visible !重要;
+        opacity: 1 !重要;
+    }
+    
+    /* 確保下拉選單正確定位 */
+    .social-link-item .dropdown-menu.show {
+        transform: translate3d(0px, 40px, 0px) !重要;
+    }
+    
+    /* 響應式佈局調整 */
+    .social-link-item .input-group {
+        flex-wrap: wrap; /* 允許元素在需要時換行 */
+    }
+    
+    .social-link-item .input-group .form-control {
+        flex: 1 1 auto; /* 允許彈性增長和收縮 */
+        min-width: 120px; /* 確保最小寬度 */
+    }
+    
+    .social-link-item .input-group .btn-danger {
+        flex: 0 0 auto; /* 不允許彈性增長或收縮 */
+        width: auto; /* 保持按鈕寬度適合內容 */
+    }
+    
+    /* 在小螢幕上調整輸入框佈局 */
+    @media (max-width: 768px) {
+        .social-link-item .input-group {
+            gap: 8px; /* 在換行時添加間距 */
+        }
+        
+        .social-link-item .input-group .btn-danger {
+            margin-left: auto; /* 按鈕靠右對齊 */
+            margin-top: 8px; /* 添加頂部間距 */
+        }
+    }
+    
+    /* 按鈕樣式 */
+    .btn-primary {
+        background-color: #6c5ce7;
+        border-color: #6c5ce7;
+    }
+    
+    .btn-primary:hover {
+        background-color: #5649d1;
+        border-color: #5649d1;
+    }
+    
+    .btn-outline-primary {
+        color: #6c5ce7;
+        border-color: #6c5ce7;
+    }
+    
+    .btn-outline-primary:hover {
+        background-color: #6c5ce7;
+        border-color: #6c5ce7;
+    }
+    
+    /* --- 新增：載入動畫樣式 --- */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1060; /* 比儲存條高 */
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+    .loading-overlay.show {
+        opacity: 1;
+        visibility: visible;
+    }
+    .spinner-wrapper {
+        text-align: center;
+        color: #fff;
+    }
+    .spinner-text {
+        margin-top: 10px;
+        font-size: 1.1rem;
+    }
+
+    /* --- 新增：浮動提示訊息樣式 --- */
+    .alert-floating {
+        position: fixed;
+        bottom: 80px; /* 調整位置，避免與儲存條重疊 */
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1055; /* 比儲存條高，比載入動畫低 */
+        min-width: 250px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.5s ease, visibility 0.5s ease, bottom 0.5s ease;
+    }
+    .alert-floating.show {
+        opacity: 1;
+        visibility: visible;
+        bottom: 95px; /* 向上滑動效果 */
+    }
+
+    /* --- 新增：Discord 風格儲存條樣式 (修改為填滿底部) --- */
+    .discord-save-bar {
+        position: fixed;
+        bottom: 0; /* 改為 0 */
+        left: 0;   /* 改為 0 */
+        width: 100%; /* 改為 100% */
+        /* 移除 max-width, left, transform */
+        background-color: #2f3136; /* Discord 深色背景 */
+        color: #dcddde; /* Discord 淺灰色文字 */
+        padding: 10px 20px; /* 保留內邊距 */
+        /* 移除 border-radius */
+        box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.2); /* 調整陰影方向 */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 1050;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease; /* 移除 bottom transition */
+    }
+    .discord-save-bar.show {
+        opacity: 1;
+        visibility: visible;
+        /* 移除 bottom: 30px; */
+    }
+    .discord-save-bar-message {
+        font-weight: 500;
+    }
+    .discord-save-bar-buttons {
+        display: flex;
+        gap: 10px;
+    }
+    .btn-reset {
+        background-color: transparent;
+        color: #dcddde;
+        border: none;
+        padding: 8px 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    .btn-reset:hover {
+        color: #fff;
+    }
+    .btn-save {
+        background-color: #3ba55d; /* Discord 綠色 */
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        padding: 8px 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .btn-save:hover {
+        background-color: #2d7d46;
+    }
+    .btn-save:disabled {
+        background-color: #5c6470; /* 禁用時的顏色 */
+        cursor: not-allowed;
+    }
+
+    /* --- 新增：預覽區塊樣式 --- */
+    .preview-container {
+        position: sticky; /* 讓預覽區塊在滾動時固定 */
+        top: 20px; /* 距離頂部的距離 */
+        margin-top: 20px;
+    }
+    .preview-iframe {
+        width: 100%;
+        height: 500px; /* 調整適合的高度 */
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .preview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    .preview-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+
+    /* 新增：主題設計相關樣式 */
+    /* 漸層選項樣式 - 更緊湊的設計 */
+    .design-options-container {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr); /* 由4列增加到6列 */
+        gap: 10px; /* 縮小間距 */
+        margin-bottom: 15px;
+    }
+    
+    @media (max-width: 992px) {
+        .design-options-container {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .design-options-container {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+    
+    .gradient-option {
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        height: 80px; /* 減小高度從100px到80px */
+    }
+    
+    .gradient-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .gradient-option.active {
+        border-color: var(--primary-color, #6c5ce7);
+        box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.3);
+    }
+    
+    .gradient-preview {
+        height: 45px; /* 減小預覽區高度從60px到45px */
+        width: 100%;
+        border-radius: 4px 4px 0 0;
+        flex-grow: 0;
+        flex-shrink: 0;
+    }
+    
+    .gradient-name {
+        padding: 4px;
+        text-align: center;
+        font-size: 0.7rem; /* 縮小字體大小 */
+        background: #fff;
+        color: #333;
+        font-weight: 500;
+        flex-grow: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1.2;
+        word-break: keep-all; /* 避免中文單字被切斷 */
+        white-space: normal; /* 允許必要的換行 */
+        overflow: hidden; /* 確保超出部分被隱藏 */
+    }
+    
+    /* 顏色選擇器樣式 */
+    .color-picker-container {
+        display: flex;
+        align-items: center;
+        margin: 15px 0;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .color-preview {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 2px solid #ddd;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.2s;
+    }
+    
+    .color-preview:hover {
+        transform: scale(1.1);
+    }
+    
+    .color-preview.active {
+        border-color: #6c5ce7;
+        box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.3);
+    }
+    
+    #mainColorPicker {
+        opacity: 0;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        cursor: pointer;
+    }
+    
+    /* 預設顏色選項 */
+    .preset-colors {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .color-option {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid #ddd;
+        transition: all 0.2s;
+    }
+    
+    .color-option:hover {
+        transform: scale(1.1);
+    }
+    
+    .color-option.active {
+        border-color: #333;
+        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.2);
+        transform: scale(1.05);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 新增：載入動畫 -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner-wrapper">
+        <div class="spinner-border text-light" role="status">
+            <span class="visually-hidden">載入中...</span>
+        </div>
+        <div class="spinner-text">儲存中...</div>
+    </div>
+</div>
+
+<!-- 新增：浮動提示訊息 -->
+<div class="alert alert-success alert-floating" role="alert" id="successAlert" style="display: none;">
+    <i class="fas fa-check-circle me-2"></i> <span id="successAlertMessage"></span>
+</div>
+<div class="alert alert-danger alert-floating" role="alert" id="errorAlert" style="display: none;">
+    <i class="fas fa-exclamation-triangle me-2"></i> <span id="errorAlertMessage"></span>
+</div>
+
+<div class="container py-4">
+    <div class="row">
+        <!-- 側邊欄 - 個人資料卡片 -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-body user-profile-card">
+                    <img src="{{ user.avatar or url_for('static', filename='images/default-avatar.png') }}" class="img-fluid rounded-circle mb-3" alt="{{ user.username }}" style="width: 100px; height: 100px; object-fit: cover;">
+                    <h3 class="card-title mb-2">{{ user.username }}</h3>
+                    <p class="card-text text-muted mb-3">Discord 成員</p>
+                    <div class="p-3 mb-3 bg-light rounded">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span><i class="fas fa-id-badge me-2"></i>成員 ID:</span>
+                            <span class="text-muted">{{ user.id }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span><i class="fas fa-calendar-check me-2"></i>註冊日期:</span>
+                            <span class="text-muted">{{ user.created_at.strftime('%Y-%m-%d') }}</span>
+                        </div>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <!-- 前台相關按鈕區塊 - 使用後台視覺風格 -->
+                        <div class="frontend-actions mb-3 p-3" style="background-color: rgba(147, 112, 219, 0.1); border-radius: 10px; border: 1px solid rgba(147, 112, 219, 0.2);">
+                            <div class="text-muted mb-2 fw-bold"><i class="fas fa-globe me-2"></i>前台功能</div>
+                            <div class="d-grid gap-2">
+                                <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary" style="background-color: transparent; border-color: #9370DB; color: #6A0DAD;">
+                                    <i class="fas fa-home me-2"></i>回到公開首頁
+                                </a>
+                                <a href="{{ url_for('main.public_profile', username=user.username) }}" target="_blank" class="btn btn-outline-primary" style="background-color: transparent; border-color: #9370DB; color: #6A0DAD;">
+                                    <i class="fas fa-external-link-alt me-2"></i>檢視我的公開頁面
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- 後台相關按鈕 - 使用與導航欄一致的樣式 -->
+                        <div class="backend-actions">
+                            <div class="text-muted mb-2 fw-bold"><i class="fas fa-cog me-2"></i>管理功能</div>
+                            <a href="{{ url_for('main.admin_logout') }}" class="btn" style="background-color: #9370DB; color: white; border: none;">
+                                <i class="fas fa-sign-out-alt me-2"></i>登出管理後台
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主要內容 - 個人資料編輯表單 -->
+        <div class="col-lg-8">
+            <form id="profileForm" method="POST" action="{{ url_for('main.save_profile') }}" novalidate>
+                <!-- 個人介紹頁面編輯卡片 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="fas fa-edit me-2"></i>編輯個人介紹</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="displayName" class="form-label">顯示名稱</label>
+                                <input type="text" class="form-control" id="displayName" name="displayName" value="{{ user.display_name or user.username }}" placeholder="您希望顯示的名稱">
+                                <small class="form-text text-muted">如果留空，將使用您的 Discord 用戶名。</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="profileTitle" class="form-label">個人標題</label>
+                                <input type="text" class="form-control" id="profileTitle" name="profileTitle" value="{{ profile.title or '' }}" placeholder="例如：網站開發者、設計師">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="profileBio" class="form-label">個人簡介</label>
+                            <textarea class="form-control" id="profileBio" name="profileBio" rows="4" placeholder="簡單介紹一下自己...">{{ profile.bio or '' }}</textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="profileInterests" class="form-label">興趣與專長</label>
+                            <input type="text" class="form-control" id="profileInterests" name="profile_interests" placeholder="例如：編程、設計、寫作" value="{{ profile.interests if profile else '' }}">
+                            <div class="form-text">請用逗號分隔不同的興趣</div>
+                        </div>
+                        <div class="mt-3">
+                            <a href="{{ url_for('main.user_testimonial') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-quote-left me-2"></i>設定我的團隊留言
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 社交媒體連結管理 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="fas fa-link me-2"></i>社交媒體連結</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="socialLinksContainer">
+                            <!-- 既有連結將在這裡動態顯示 -->
+                            {% if social_links %}
+                                {% for link in social_links %}
+                                <div class="social-link-item mb-3">
+                                    <div class="input-group">
+                                        <span class="input-group-text social-icon-select" data-bs-toggle="dropdown">
+                                            <i class="{{ link.icon_class }}"></i>
+                                            <i class="fas fa-caret-down ms-2"></i>
+                                        </span>
+                                        <div class="dropdown-menu icon-dropdown-menu">
+                                            <a class="dropdown-item" href="#" data-icon="fab fa-facebook"><i class="fab fa-facebook me-2"></i>Facebook</a>
+                                            <a class="dropdown-item" href="#" data-icon="fab fa-twitter"><i class="fab fa-twitter me-2"></i>Twitter</a>
+                                            <a class="dropdown-item" href="#" data-icon="fab fa-instagram"><i class="fab fa-instagram me-2"></i>Instagram</a>
+                                            <a class="dropdown-item" href="#" data-icon="fab fa-discord"><i class="fab fa-discord me-2"></i>Discord</a>
+                                            <a class="dropdown-item" href="#" data-icon="fab fa-github"><i class="fab fa-github me-2"></i>GitHub</a>
+                                            <a class="dropdown-item" href="#" data-icon="fab fa-youtube"><i class="fab fa-youtube me-2"></i>YouTube</a>
+                                            <a class="dropdown-item" href="#" data-icon="fab fa-twitch"><i class="fab fa-twitch me-2"></i>Twitch</a>
+                                            <a class="dropdown-item" href="#" data-icon="fab fa-linkedin"><i class="fab fa-linkedin me-2"></i>LinkedIn</a>
+                                            <a class="dropdown-item" href="#" data-icon="fab fa-medium"><i class="fab fa-medium me-2"></i>Medium</a>
+                                            <a class="dropdown-item" href="#" data-icon="fab fa-pinterest"><i class="fab fa-pinterest me-2"></i>Pinterest</a>
+                                            <a class="dropdown-item" href="#" data-icon="fab fa-reddit"><i class="fab fa-reddit me-2"></i>Reddit</a>
+                                            <a class="dropdown-item" href="#" data-icon="fas fa-globe"><i class="fas fa-globe me-2"></i>網站</a>
+                                            <a class="dropdown-item" href="#" data-icon="fas fa-envelope"><i class="fas fa-envelope me-2"></i>電子郵件</a>
+                                        </div>
+                                        <input type="hidden" name="social_icons[]" value="{{ link.icon_class }}" class="social-icon-input">
+                                        <input type="text" class="form-control" name="social_titles[]" placeholder="平台名稱" value="{{ link.title }}">
+                                        <input type="url" class="form-control" name="social_urls[]" placeholder="連結網址" value="{{ link.url }}">
+                                        <button type="button" class="btn btn-danger remove-link">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mt-3 d-flex gap-3">
+                            <button type="button" class="btn btn-outline-primary" id="addSocialLink">
+                                <i class="fas fa-plus me-2"></i>新增連結
+                            </button>
+                        </div>
+                        <small class="form-text text-muted mt-2">輸入完整網址 (例如：https://example.com) 或純文字 (例如：Discord用戶名#1234)。純文字將在公開頁面提供複製功能。</small>
+                    </div>
+                </div>
+
+                <!-- 新增：頁面設計選項管理 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="mb-0"><i class="fas fa-palette me-2"></i>頁面設計</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <label class="form-label">背景漸層</label>
+                            <div class="design-options-container" id="gradientOptions">
+                                <!-- 漸層選項將通過 JS 動態生成 -->
+                                <div class="text-center">
+                                    <div class="spinner-border text-secondary" role="status">
+                                        <span class="visually-hidden">載入中...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">主要顏色</label>
+                            
+                            <!-- 新增：預設主題顏色選項 -->
+                            <div class="preset-colors" id="presetColors">
+                                <div class="color-option active" data-color="#7983d4" style="background-color: #7983d4;" title="預設紫"></div>
+                                <div class="color-option" data-color="#3498db" style="background-color: #3498db;" title="清新藍"></div>
+                                <div class="color-option" data-color="#2ecc71" style="background-color: #2ecc71;" title="翠綠"></div>
+                                <div class="color-option" data-color="#e74c3c" style="background-color: #e74c3c;" title="珊瑚紅"></div>
+                                <div class="color-option" data-color="#f39c12" style="background-color: #f39c12;" title="陽光橙"></div>
+                                <div class="color-option" data-color="#9b59b6" style="background-color: #9b59b6;" title="薰衣草紫"></div>
+                                <div class="color-option" data-color="#1abc9c" style="background-color: #1abc9c;" title="薄荷綠"></div>
+                                <div class="color-option" data-color="#34495e" style="background-color: #34495e;" title="深海藍"></div>
+                            </div>
+                            
+                            <div class="color-picker-container">
+                                <div class="color-preview" id="mainColorPreview">
+                                    <input type="color" id="mainColorPicker" name="main_color" value="{{ profile.main_color or '#7983d4' }}">
+                                </div>
+                                <span id="currentColorValue">{{ profile.main_color or '#7983d4' }}</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="resetColorBtn">
+                                    <i class="fas fa-undo-alt"></i> 重設為預設色
+                                </button>
+                            </div>
+                            <small class="form-text text-muted">選擇預設主題色或使用色彩選擇器自訂顏色。此顏色將作為頁面的主色調，應用於按鈕、連結等元素。</small>
+                            <input type="hidden" name="background_gradient" id="backgroundGradientInput" value="{{ profile.background_gradient or 'default' }}">
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <!-- 新增：即時預覽區塊 -->
+            <div class="preview-container card">
+                 <div class="card-body">
+                    <div class="preview-header">
+                        <h4 class="preview-title mb-0"><i class="fas fa-eye me-2"></i>即時預覽</h4>
+                        <a href="{{ url_for('main.public_profile', username=user.username) }}" target="_blank" class="btn btn-sm btn-outline-primary visit-profile-btn">
+                            <i class="fas fa-external-link-alt me-1"></i> <span class="button-text">公開頁面</span>
+                        </a>
+                    </div>
+                    <iframe id="profilePreviewFrame" src="{{ url_for('main.profile_preview') }}" class="preview-iframe" title="個人檔案預覽"></iframe>
+                </div>
+            </div>
+
+            <!-- 新增：Discord 風格儲存條 -->
+            <div class="discord-save-bar" id="saveBar">
+                <span class="discord-save-bar-message">您有未儲存的變更。</span>
+                <div class="discord-save-bar-buttons">
+                    <button type="button" class="btn-reset" id="resetButton">重設</button>
+                    <button type="button" class="btn-save" id="saveButton">儲存變更</button>
+                </div>
+            </div>
+
+        </div> <!-- End of col-lg-8 -->
+    </div> <!-- End of row -->
+</div> <!-- End of container -->
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/gradients.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("Dashboard JS: DOMContentLoaded"); // DEBUG: DOM loaded
+
+    // --- DOM 元素 ---
+    const profileForm = document.getElementById('profileForm');
+    const socialLinksContainer = document.getElementById('socialLinksContainer');
+    const addSocialLinkButton = document.getElementById('addSocialLink');
+    const saveBar = document.getElementById('saveBar');
+    const saveButton = document.getElementById('saveButton');
+    const resetButton = document.getElementById('resetButton');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const successAlert = document.getElementById('successAlert');
+    const errorAlert = document.getElementById('errorAlert');
+    const successAlertMessage = document.getElementById('successAlertMessage');
+    const errorAlertMessage = document.getElementById('errorAlertMessage');
+    const previewFrame = document.getElementById('profilePreviewFrame');
+    // 新增：設計相關元素
+    const gradientOptionsContainer = document.getElementById('gradientOptions');
+    const backgroundGradientInput = document.getElementById('backgroundGradientInput');
+    const mainColorPicker = document.getElementById('mainColorPicker');
+    const mainColorPreview = document.getElementById('mainColorPreview');
+    const currentColorValue = document.getElementById('currentColorValue');
+    const resetColorBtn = document.getElementById('resetColorBtn');
+    const DEFAULT_COLOR = '#7983d4';
+
+    let initialRawData = {}; // Store the raw data fetched initially
+    let initialStateJSON = ''; // Store the initial state as a JSON string
+    let alertTimeout = null;
+    let previewUpdateTimeout = null;
+
+    // --- Helper Functions ---
+    function showLoading() { console.log("DEBUG: showLoading called"); loadingOverlay.classList.add('show'); saveButton.disabled = true; } // DEBUG
+    function hideLoading() { console.log("DEBUG: hideLoading called"); loadingOverlay.classList.remove('show'); saveButton.disabled = false; } // DEBUG
+    function showAlert(type, message) {
+        console.log(`DEBUG: showAlert called - Type: ${type}, Message: ${message}`); // DEBUG
+        if (alertTimeout) clearTimeout(alertTimeout);
+        [successAlert, errorAlert].forEach(alert => {
+            alert.classList.remove('show');
+            alert.style.display = 'none';
+        });
+        const alertElement = type === 'success' ? successAlert : errorAlert;
+        const messageElement = type === 'success' ? successAlertMessage : errorAlertMessage;
+        messageElement.textContent = message;
+        alertElement.style.display = 'block';
+        setTimeout(() => alertElement.classList.add('show'), 10);
+        alertTimeout = setTimeout(() => {
+            alertElement.classList.remove('show');
+            setTimeout(() => alertElement.style.display = 'none', 500);
+        }, 5000);
+    }
+
+    // --- 新增：漸層與顏色管理 ---
+    
+    // 初始化漸層選項
+    function initGradientOptions() {
+        // 檢查全局變量是否可用
+        if (typeof window.GradientManager === 'undefined') {
+            console.error("GradientManager 未載入，請確保已引入 gradients.js");
+            return;
+        }
+        
+        const allGradients = window.GradientManager.getAllGradients();
+        let html = '';
+        
+        // 生成漸層選項
+        Object.keys(allGradients).forEach(id => {
+            const gradient = allGradients[id];
+            const isActive = backgroundGradientInput.value === id ? 'active' : '';
+            
+            html += `
+                <div class="gradient-option ${isActive}" data-gradient-id="${id}">
+                    <div class="gradient-preview ${gradient.previewClass}"></div>
+                    <span class="gradient-name">${gradient.name}</span>
+                </div>
+            `;
+        });
+        
+        gradientOptionsContainer.innerHTML = html;
+        
+        // 為漸層選項添加點擊事件
+        document.querySelectorAll('.gradient-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const gradientId = this.getAttribute('data-gradient-id');
+                
+                // 移除其他選項的活動狀態
+                document.querySelectorAll('.gradient-option').forEach(opt => {
+                    opt.classList.remove('active');
+                });
+                
+                // 設置當前選項為活動狀態
+                this.classList.add('active');
+                
+                // 更新表單值
+                backgroundGradientInput.value = gradientId;
+                
+                // 檢測變更
+                checkChangesAndToggleSaveBar();
+            });
+        });
+        
+        // 初始化顏色選擇器
+        initColorPicker();
+    }
+    
+    // 初始化顏色選擇器
+    function initColorPicker() {
+        // 設置初始顏色
+        const currentColor = mainColorPicker.value || DEFAULT_COLOR;
+        mainColorPreview.style.backgroundColor = currentColor;
+        currentColorValue.textContent = currentColor;
+        
+        // 預設顏色選項處理
+        const presetColorOptions = document.querySelectorAll('.color-option');
+        
+        // 設置初始選中狀態
+        presetColorOptions.forEach(option => {
+            const optionColor = option.getAttribute('data-color');
+            if (optionColor === currentColor) {
+                option.classList.add('active');
+            } else {
+                option.classList.remove('active');
+            }
+        });
+        
+        // 點擊預設顏色選項
+        presetColorOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                const selectedColor = this.getAttribute('data-color');
+                
+                // 更新顏色選擇器和預覽
+                mainColorPicker.value = selectedColor;
+                mainColorPreview.style.backgroundColor = selectedColor;
+                currentColorValue.textContent = selectedColor;
+                
+                // 更新活動狀態
+                presetColorOptions.forEach(opt => {
+                    opt.classList.remove('active');
+                });
+                this.classList.add('active');
+                
+                // 觸發變更檢測
+                checkChangesAndToggleSaveBar();
+            });
+        });
+        
+        // 顏色變更事件
+        mainColorPicker.addEventListener('input', function() {
+            const newColor = this.value;
+            mainColorPreview.style.backgroundColor = newColor;
+            currentColorValue.textContent = newColor;
+            
+            // 檢查是否匹配任何預設顏色
+            let foundMatch = false;
+            presetColorOptions.forEach(option => {
+                const optionColor = option.getAttribute('data-color');
+                if (optionColor.toLowerCase() === newColor.toLowerCase()) {
+                    option.classList.add('active');
+                    foundMatch = true;
+                } else {
+                    option.classList.remove('active');
+                }
+            });
+            
+            // 如果沒有匹配的預設顏色，移除所有活動狀態
+            if (!foundMatch) {
+                presetColorOptions.forEach(opt => opt.classList.remove('active'));
+            }
+            
+            checkChangesAndToggleSaveBar();
+        });
+        
+        // 重設顏色按鈕
+        resetColorBtn.addEventListener('click', function() {
+            mainColorPicker.value = DEFAULT_COLOR;
+            mainColorPreview.style.backgroundColor = DEFAULT_COLOR;
+            currentColorValue.textContent = DEFAULT_COLOR;
+            
+            // 重設預設顏色選項
+            presetColorOptions.forEach(option => {
+                const optionColor = option.getAttribute('data-color');
+                if (optionColor === DEFAULT_COLOR) {
+                    option.classList.add('active');
+                } else {
+                    option.classList.remove('active');
+                }
+            });
+            
+            checkChangesAndToggleSaveBar();
+        });
+    }
+
+    // --- State Management & Form Population ---
+
+    // Function to get the current state of the form and serialize it
+    function getCurrentStateJSON() {
+        console.log("DEBUG: getCurrentStateJSON called"); // DEBUG
+        const data = {
+            displayName: profileForm.querySelector('#displayName').value.trim(),
+            profileTitle: profileForm.querySelector('#profileTitle').value.trim(),
+            profileBio: profileForm.querySelector('#profileBio').value.trim(),
+            profileInterests: profileForm.querySelector('#profileInterests').value.trim(),
+            socialLinks: [],
+            background_gradient: backgroundGradientInput.value,
+            main_color: mainColorPicker.value
+        };
+        socialLinksContainer.querySelectorAll('.social-link-item').forEach(item => {
+            const iconInput = item.querySelector('input[name="social_icons[]"]');
+            const titleInput = item.querySelector('input[name="social_titles[]"]');
+            const urlInput = item.querySelector('input[name="social_urls[]"]');
+            const icon = iconInput ? iconInput.value : 'fas fa-globe';
+            const title = titleInput ? titleInput.value.trim() : '';
+            const url = urlInput ? urlInput.value.trim() : '';
+            if (title || url) {
+                data.socialLinks.push({ icon_class: icon, title: title, url: url });
+            } else {
+                console.log("DEBUG: getCurrentStateJSON skipped empty link item:", item); // DEBUG
+            }
+        });
+        data.socialLinks.sort((a, b) => (a.title + a.url + a.icon_class).localeCompare(b.title + b.url + b.icon_class));
+        const jsonString = JSON.stringify(data);
+        console.log("DEBUG: Current State Data:", data); // DEBUG
+        console.log("DEBUG: Current State JSON:", jsonString); // DEBUG
+        return jsonString;
+    }
+
+    // Function to populate the form DOM from data (used for initial load and reset)
+    function populateFormFromData(sourceData) {
+        console.log("DEBUG: populateFormFromData called with data:", sourceData); // DEBUG
+        profileForm.querySelector('#displayName').value = sourceData.user?.display_name || '';
+        profileForm.querySelector('#profileTitle').value = sourceData.profile?.title || '';
+        profileForm.querySelector('#profileBio').value = sourceData.profile?.bio || '';
+        profileForm.querySelector('#profileInterests').value = sourceData.profile?.interests || '';
+        
+        // 新增：設置背景和顏色
+        if (sourceData.profile) {
+            backgroundGradientInput.value = sourceData.profile.background_gradient || 'default';
+            mainColorPicker.value = sourceData.profile.main_color || DEFAULT_COLOR;
+            mainColorPreview.style.backgroundColor = sourceData.profile.main_color || DEFAULT_COLOR;
+            currentColorValue.textContent = sourceData.profile.main_color || DEFAULT_COLOR;
+            
+            // 更新漸層選項的活動狀態
+            document.querySelectorAll('.gradient-option').forEach(option => {
+                const gradientId = option.getAttribute('data-gradient-id');
+                if (gradientId === backgroundGradientInput.value) {
+                    option.classList.add('active');
+                } else {
+                    option.classList.remove('active');
+                }
+            });
+        }
+
+        socialLinksContainer.innerHTML = ''; // Clear existing links before adding new ones
+        if (sourceData.social_links && sourceData.social_links.length > 0) {
+            const validLinks = sourceData.social_links.filter(link =>
+                (link.title && link.title.trim()) || (link.url && link.url.trim())
+            );
+            const sortedLinks = [...validLinks].sort((a, b) => (a.title + a.url + a.icon_class).localeCompare(b.title + b.url + b.icon_class));
+            console.log("DEBUG: Populating with valid & sorted links:", sortedLinks); // DEBUG
+            sortedLinks.forEach(linkData => addSocialLinkItem(linkData));
+        }
+    }
+
+    // --- Social Link Management ---
+    function addSocialLinkItem(linkData = null) {
+        console.log("DEBUG: addSocialLinkItem called with data:", linkData); // DEBUG
+        const linkItem = document.createElement('div');
+        linkItem.className = 'social-link-item mb-3';
+        const defaultIcon = 'fas fa-globe';
+        const icon = linkData?.icon_class || defaultIcon;
+        const title = linkData?.title || '';
+        const url = linkData?.url || '';
+
+        linkItem.innerHTML = `
+            <div class="input-group">
+                <span class="input-group-text social-icon-select" data-bs-toggle="dropdown">
+                    <i class="${icon}"></i><i class="fas fa-caret-down ms-2"></i>
+                </span>
+                <div class="dropdown-menu icon-dropdown-menu">
+                    <!-- Dropdown items -->
+                    <a class="dropdown-item" href="#" data-icon="fab fa-facebook"><i class="fab fa-facebook me-2"></i>Facebook</a>
+                    <a class="dropdown-item" href="#" data-icon="fab fa-twitter"><i class="fab fa-twitter me-2"></i>Twitter</a>
+                    <a class="dropdown-item" href="#" data-icon="fab fa-instagram"><i class="fab fa-instagram me-2"></i>Instagram</a>
+                    <a class="dropdown-item" href="#" data-icon="fab fa-discord"><i class="fab fa-discord me-2"></i>Discord</a>
+                    <a class="dropdown-item" href="#" data-icon="fab fa-github"><i class="fab fa-github me-2"></i>GitHub</a>
+                    <a class="dropdown-item" href="#" data-icon="fab fa-youtube"><i class="fab fa-youtube me-2"></i>YouTube</a>
+                    <a class="dropdown-item" href="#" data-icon="fab fa-twitch"><i class="fab fa-twitch me-2"></i>Twitch</a>
+                    <a class="dropdown-item" href="#" data-icon="fab fa-linkedin"><i class="fab fa-linkedin me-2"></i>LinkedIn</a>
+                    <a class="dropdown-item" href="#" data-icon="fab fa-medium"><i class="fab fa-medium me-2"></i>Medium</a>
+                    <a class="dropdown-item" href="#" data-icon="fab fa-pinterest"><i class="fab fa-pinterest me-2"></i>Pinterest</a>
+                    <a class="dropdown-item" href="#" data-icon="fab fa-reddit"><i class="fab fa-reddit me-2"></i>Reddit</a>
+                    <a class="dropdown-item" href="#" data-icon="fas fa-globe"><i class="fas fa-globe me-2"></i>網站</a>
+                    <a class="dropdown-item" href="#" data-icon="fas fa-envelope"><i class="fas fa-envelope me-2"></i>電子郵件</a>
+                </div>
+                <input type="hidden" name="social_icons[]" value="${icon}" class="social-icon-input">
+                <input type="text" class="form-control" name="social_titles[]" placeholder="平台名稱" value="${title}">
+                <input type="url" class="form-control" name="social_urls[]" placeholder="連結網址或純文字" value="${url}">
+                <button type="button" class="btn btn-danger remove-link"><i class="fas fa-times"></i></button>
+            </div>`;
+        socialLinksContainer.appendChild(linkItem);
+    }
+
+    // --- Preview Update (Refactored) ---
+    function updatePreview(currentStateData) {
+        console.log("DEBUG: updatePreview called (debounced) with data:", currentStateData); // DEBUG
+        clearTimeout(previewUpdateTimeout);
+        previewUpdateTimeout = setTimeout(() => {
+            console.log("DEBUG: Executing debounced preview update"); // DEBUG
+            if (previewFrame?.contentWindow && currentStateData) {
+                const previewData = {
+                    ...currentStateData,
+                    username: "{{ user.username }}",
+                    avatar: "{{ user.avatar or url_for('static', filename='images/default-avatar.png') }}"
+                };
+                console.log("DEBUG: Posting preview data:", previewData); // DEBUG
+                previewFrame.contentWindow.postMessage(previewData, '*');
+            } else {
+                 console.log("DEBUG: Preview update skipped (no frame window or no data)"); // DEBUG
+            }
+        }, 250);
+    }
+
+    // --- Change Detection (Refactored) ---
+    function checkChangesAndToggleSaveBar() {
+        console.log("DEBUG: checkChangesAndToggleSaveBar called"); // DEBUG
+        const currentStateJSON = getCurrentStateJSON();
+        const hasChanges = currentStateJSON !== initialStateJSON;
+        console.log("DEBUG: Initial State JSON:", initialStateJSON); // DEBUG
+        console.log("DEBUG: Current State JSON:", currentStateJSON); // DEBUG
+        console.log("DEBUG: Has Changes:", hasChanges); // DEBUG
+        saveBar.classList.toggle('show', hasChanges);
+
+        // Parse JSON and update preview
+        try {
+            const currentStateData = JSON.parse(currentStateJSON);
+            updatePreview(currentStateData); // Pass the parsed object
+        } catch (e) {
+            console.error("DEBUG: Error parsing current state JSON for preview:", e);
+        }
+    }
+
+    // --- Save Handler ---
+    function handleSave() {
+        console.log("DEBUG: Save button clicked, calling handleSave"); // DEBUG
+        showLoading();
+        const currentFormDataForSubmit = new FormData(profileForm);
+        console.log("DEBUG: FormData for submission:", Object.fromEntries(currentFormDataForSubmit.entries())); // DEBUG
+
+        fetch('{{ url_for("main.save_profile") }}', {
+            method: 'POST',
+            body: currentFormDataForSubmit
+        })
+        .then(response => {
+             console.log("DEBUG: Save response status:", response.status); // DEBUG
+             return response.json();
+        })
+        .then(data => {
+            console.log("DEBUG: Save response data:", data); // DEBUG
+            hideLoading();
+            if (data.success) {
+                showAlert('success', data.message || '個人資料已成功更新');
+                initialStateJSON = getCurrentStateJSON(); // Update initial state JSON
+                console.log("DEBUG: Initial state JSON updated after successful save:", initialStateJSON); // DEBUG
+                // Update initialRawData (optional, but good for consistency if reset is used after save)
+                try {
+                    const savedStateData = JSON.parse(initialStateJSON);
+                    initialRawData = {
+                        user: { ...initialRawData.user, display_name: savedStateData.displayName },
+                        profile: {
+                            ...initialRawData.profile,
+                            title: savedStateData.profileTitle,
+                            bio: savedStateData.profileBio,
+                            interests: savedStateData.profileInterests,
+                            background_gradient: savedStateData.background_gradient,
+                            main_color: savedStateData.main_color
+                        },
+                        social_links: savedStateData.socialLinks
+                    };
+                    console.log("DEBUG: initialRawData updated after successful save:", initialRawData); // DEBUG
+                } catch(e) {
+                     console.error("DEBUG: Error updating initialRawData after save:", e);
+                }
+                checkChangesAndToggleSaveBar(); // Should hide the bar now
+            } else {
+                showAlert('error', data.message || '更新失敗，請檢查您的輸入。');
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('儲存時發生錯誤:', error);
+            showAlert('error', '儲存時發生網路錯誤，請稍後再試。');
+        });
+    }
+
+    // --- Delegated Event Handler for Social Links ---
+    function handleSocialLinkClicks(e) {
+        console.log("DEBUG: socialLinksContainer click event triggered by:", e.target); // DEBUG
+        const removeButton = e.target.closest('.remove-link');
+        if (removeButton) {
+            console.log("DEBUG: Remove link button clicked"); // DEBUG
+            removeButton.closest('.social-link-item')?.remove();
+            checkChangesAndToggleSaveBar();
+            return;
+        }
+
+        const dropdownItem = e.target.closest('.dropdown-item[data-icon]');
+        if (dropdownItem) {
+            console.log("DEBUG: Icon dropdown item clicked:", dropdownItem.getAttribute('data-icon')); // DEBUG
+            e.preventDefault();
+            const linkItem = dropdownItem.closest('.social-link-item');
+            if (linkItem) {
+                const icon = dropdownItem.getAttribute('data-icon');
+                const iconInput = linkItem.querySelector('.social-icon-input');
+                const iconDisplay = linkItem.querySelector('.social-icon-select i:first-child');
+                if (iconInput && iconDisplay) {
+                    iconInput.value = icon;
+                    iconDisplay.className = icon;
+                    checkChangesAndToggleSaveBar();
+                } else {
+                    console.warn("DEBUG: Could not find icon input or display element for dropdown item click"); // DEBUG
+                }
+            } else {
+                 console.warn("DEBUG: Could not find parent link item for dropdown item click"); // DEBUG
+            }
+        }
+    }
+
+    // --- Initialization ---
+    function initializeDashboard() {
+        console.log("DEBUG: initializeDashboard called"); // DEBUG
+        
+        // 先初始化漸層選項，以便在數據載入前準備好 UI
+        initGradientOptions();
+        
+        fetch('{{ url_for("main.get_profile_data") }}')
+            .then(response => {
+                console.log("DEBUG: Fetched initial data response status:", response.status); // DEBUG
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("DEBUG: Fetched initial data:", data); // DEBUG
+                if (data.success) {
+                    initialRawData = data;
+                    populateFormFromData(initialRawData); // Now defined
+                    initialStateJSON = getCurrentStateJSON(); // Now defined
+                    console.log("DEBUG: Initial state JSON set after population:", initialStateJSON); // DEBUG
+                    checkChangesAndToggleSaveBar(); // Initial check
+
+                    // Bind static listeners ONCE
+                    console.log("DEBUG: Binding static event listeners"); // DEBUG
+                    profileForm.addEventListener('input', (e) => {
+                        console.log("DEBUG: profileForm input event triggered by:", e.target); // DEBUG
+                        checkChangesAndToggleSaveBar();
+                    });
+                    addSocialLinkButton.addEventListener('click', () => {
+                        console.log("DEBUG: Add Social Link button clicked"); // DEBUG
+                        addSocialLinkItem();
+                        checkChangesAndToggleSaveBar();
+                    });
+                    resetButton.addEventListener('click', () => {
+                        console.log("DEBUG: Reset button clicked"); // DEBUG
+                        populateFormFromData(initialRawData);
+                        initialStateJSON = getCurrentStateJSON(); // Recalculate after reset
+                        console.log("DEBUG: Initial state JSON recalculated after reset:", initialStateJSON); // DEBUG
+                        checkChangesAndToggleSaveBar();
+                    });
+                    saveButton.addEventListener('click', handleSave);
+
+                    // Bind delegated listeners ONCE
+                    console.log("DEBUG: Binding delegated event listeners for social links"); // DEBUG
+                    socialLinksContainer.addEventListener('click', handleSocialLinkClicks);
+
+                    // Preview setup
+                    console.log("DEBUG: Setting up preview frame listener"); // DEBUG
+                    previewFrame.addEventListener('load', () => {
+                        console.log("DEBUG: Preview frame loaded"); // DEBUG
+                        checkChangesAndToggleSaveBar(); // Update preview on load
+                    });
+                    if (previewFrame.contentDocument?.readyState === 'complete') {
+                        console.log("DEBUG: Preview frame already complete, updating"); // DEBUG
+                        checkChangesAndToggleSaveBar(); // Update preview if already loaded
+                    }
+
+                } else {
+                    console.error('無法獲取初始個人資料:', data.message);
+                    showAlert('error', data.message || '無法載入您的個人資料，請稍後再試。');
+                }
+            })
+            .catch(error => {
+                console.error('獲取初始個人資料時發生錯誤:', error);
+                showAlert('error', '載入個人資料時發生網路錯誤。');
+            });
+    }
+
+    // --- Start Initialization ---
+    initializeDashboard();
+
+});
+</script>
+{% endblock %}

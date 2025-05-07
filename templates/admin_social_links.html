@@ -1,0 +1,319 @@
+{% extends "admin_base.html" %}
+
+{% block title %}社群媒體連結管理{% endblock %}
+{% block header_title %}社群媒體連結管理{% endblock %}
+
+{% block page_icon_class %}fas fa-share-alt{% endblock %}
+{% block page_title %}社群媒體連結管理{% endblock %}
+{% block page_subtitle %}管理公開頁面頁尾的社群媒體連結設定{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .icon-preview {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+    }
+    
+    /* 圖標選擇器樣式 */
+    #iconSelectorModal .icon-search {
+        border-radius: 20px;
+        padding-left: 15px;
+    }
+    
+    #iconSelectorModal .icon-filter-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    #iconSelectorModal .icon-category {
+        margin-bottom: 20px;
+    }
+    
+    #iconSelectorModal .icon-category-title {
+        font-weight: 600;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    #iconSelectorModal .icon-grid {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 10px;
+    }
+    
+    @media (max-width: 768px) {
+        #iconSelectorModal .icon-grid {
+            grid-template-columns: repeat(6, 1fr);
+        }
+    }
+    
+    @media (max-width: 576px) {
+        #iconSelectorModal .icon-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+    
+    #iconSelectorModal .icon-item {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 40px;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    #iconSelectorModal .icon-item:hover {
+        background-color: #e9ecef;
+        transform: scale(1.05);
+    }
+    
+    #iconSelectorModal .icon-item.selected {
+        background-color: rgba(108, 92, 231, 0.1);
+        border-color: var(--primary-color);
+        transform: scale(1.05);
+    }
+    
+    #iconSelectorModal .icon-item i {
+        font-size: 1.2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 社群媒體連結表單卡片 -->
+<div class="admin-card mb-4">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title" id="formTitle">
+            <i class="admin-card-icon fas fa-plus-circle"></i>
+            新增社群媒體連結
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        <form method="POST" action="{{ url_for('main.admin_manage_social_links') }}">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="form-group mb-3">
+                        <label for="icon_class" class="form-label">圖示</label>
+                        <div class="input-group">
+                            <span class="input-group-text" id="iconPreview">
+                                <i class="fas fa-globe"></i>
+                            </span>
+                            <input type="text" class="form-control" id="icon_class" name="icon_class" value="fas fa-globe" readonly>
+                            <button class="btn btn-outline-secondary" type="button" id="iconSelectBtn">
+                                <i class="fas fa-icons"></i> 選擇
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group mb-3">
+                        <label for="title" class="form-label">標題</label>
+                        <input type="text" class="form-control" id="title" name="title" required placeholder="例如：Discord 官方社群">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group mb-3">
+                        <label for="url" class="form-label">網址</label>
+                        <input type="url" class="form-control" id="url" name="url" required placeholder="例如：https://discord.gg/example">
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="form-group mb-3">
+                        <label for="display_order" class="form-label">顯示順序</label>
+                        <input type="number" class="form-control" id="display_order" name="display_order" value="0" min="0">
+                        <div class="form-text">數字越小排序越前</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check mt-4">
+                        <input type="checkbox" class="form-check-input" id="is_active" name="is_active" checked>
+                        <label class="form-check-label" for="is_active">啟用此連結</label>
+                    </div>
+                </div>
+                <div class="col-md-4 d-flex align-items-end justify-content-end">
+                    <button type="reset" class="admin-btn admin-btn-outline me-2" id="resetBtn">
+                        <i class="fas fa-undo me-1"></i> 重置
+                    </button>
+                    <button type="submit" class="admin-btn admin-btn-primary" id="submitBtn">
+                        <i class="fas fa-plus me-1"></i> 新增連結
+                    </button>
+                </div>
+            </div>
+            <input type="hidden" name="link_id" id="link_id">
+        </form>
+    </div>
+</div>
+
+<!-- 現有社群媒體連結卡片 -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-list"></i>
+            現有社群媒體連結
+            {% if social_links %}<span class="badge bg-primary ms-2">{{ social_links|length }}</span>{% endif %}
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        {% if social_links %}
+        <div class="table-responsive">
+            <table class="admin-table w-100">
+                <thead>
+                    <tr>
+                        <th width="5%">順序</th>
+                        <th width="10%">圖示</th>
+                        <th width="20%">標題</th>
+                        <th width="30%">網址</th>
+                        <th width="10%">狀態</th>
+                        <th width="25%">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for link in social_links %}
+                    <tr>
+                        <td>{{ link.display_order }}</td>
+                        <td>
+                            <div class="icon-preview">
+                                <i class="{{ link.icon_class }}"></i>
+                            </div>
+                        </td>
+                        <td>{{ link.title }}</td>
+                        <td>
+                            <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
+                                {{ link.url|truncate(30) }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if link.is_active %}
+                            <span class="admin-tag admin-tag-success"><i class="fas fa-check me-1"></i>啟用</span>
+                            {% else %}
+                            <span class="admin-tag admin-tag-warning"><i class="fas fa-times me-1"></i>停用</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button 
+                                class="admin-btn admin-btn-sm admin-btn-outline edit-link-btn" 
+                                data-id="{{ link.id }}"
+                                data-icon-class="{{ link.icon_class }}"
+                                data-title="{{ link.title }}"
+                                data-url="{{ link.url }}"
+                                data-display-order="{{ link.display_order }}"
+                                data-is-active="{{ link.is_active|int }}">
+                                <i class="fas fa-edit me-1"></i> 編輯
+                            </button>
+                            <form action="{{ url_for('main.admin_manage_social_links') }}" method="POST" class="d-inline" onsubmit="return confirmDelete('{{ link.title }}');">
+                                <input type="hidden" name="delete" value="{{ link.id }}">
+                                <button type="submit" class="admin-btn admin-btn-sm admin-btn-danger">
+                                    <i class="fas fa-trash-alt me-1"></i> 刪除
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-share-alt fa-3x mb-3 text-muted"></i>
+            <p class="text-muted">目前沒有社群媒體連結，請使用上方表單新增。</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 返回按鈕 -->
+<div class="mt-4 text-center">
+    <a href="{{ url_for('main.admin_public_settings') }}" class="admin-btn admin-btn-secondary">
+        <i class="fas fa-arrow-left me-1"></i> 返回公開頁面設定
+    </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/iconSelector.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 初始化圖標選擇器
+        const iconSelector = IconSelector.init({
+            buttonSelector: '#iconSelectBtn',
+            iconInputSelector: '#icon_class',
+            iconPreviewSelector: '#iconPreview',
+            initialIcon: document.getElementById('icon_class').value || 'fas fa-globe',
+            onSelect: function(selectedIcon) {
+                document.getElementById('iconPreview').innerHTML = `<i class="${selectedIcon}"></i>`;
+                document.getElementById('icon_class').value = selectedIcon;
+            }
+        });
+
+        // 處理編輯按鈕點擊事件
+        document.querySelectorAll('.edit-link-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                // 獲取表單元素
+                const form = document.querySelector('form');
+                const linkId = this.getAttribute('data-id');
+                const iconClass = this.getAttribute('data-icon-class');
+                const title = this.getAttribute('data-title');
+                const url = this.getAttribute('data-url');
+                const displayOrder = this.getAttribute('data-display-order');
+                const isActive = this.getAttribute('data-is-active') === '1';
+
+                // 填充表單
+                document.getElementById('link_id').value = linkId;
+                document.getElementById('title').value = title;
+                document.getElementById('url').value = url;
+                document.getElementById('display_order').value = displayOrder;
+                document.getElementById('is_active').checked = isActive;
+
+                // 設置圖標
+                document.getElementById('icon_class').value = iconClass;
+                document.getElementById('iconPreview').innerHTML = `<i class="${iconClass}"></i>`;
+                iconSelector.setSelectedIcon(iconClass);
+
+                // 修改表單標題及提交按鈕
+                document.getElementById('formTitle').innerHTML = '<i class="admin-card-icon fas fa-edit"></i> 編輯社群媒體連結';
+                document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save me-1"></i> 儲存變更';
+
+                // 滾動到表單頂部
+                window.scrollTo({top: form.offsetTop - 100, behavior: 'smooth'});
+            });
+        });
+
+        // 重置按鈕
+        document.getElementById('resetBtn').addEventListener('click', function() {
+            // 清空隱藏的ID欄位
+            document.getElementById('link_id').value = '';
+            
+            // 恢復默認圖標
+            document.getElementById('icon_class').value = 'fas fa-globe';
+            document.getElementById('iconPreview').innerHTML = '<i class="fas fa-globe"></i>';
+            iconSelector.setSelectedIcon('fas fa-globe');
+            
+            // 恢復表單標題和提交按鈕文本
+            document.getElementById('formTitle').innerHTML = '<i class="admin-card-icon fas fa-plus-circle"></i> 新增社群媒體連結';
+            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-plus me-1"></i> 新增連結';
+        });
+
+        // 確認刪除
+        window.confirmDelete = function(title) {
+            return confirm(`確定要刪除「${title}」這個社群媒體連結嗎？`);
+        }
+    });
+</script>
+{% endblock %}

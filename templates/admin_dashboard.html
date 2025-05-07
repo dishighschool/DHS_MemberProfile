@@ -1,0 +1,676 @@
+{% extends "admin_base.html" %}
+
+{% block title %}管理員儀表板{% endblock %}
+{% block header_title %}管理員儀表板{% endblock %}
+
+{% block page_icon_class %}fas fa-tachometer-alt{% endblock %}
+{% block page_title %}系統功能中心{% endblock %}
+{% block page_subtitle %}控制管理系統所有功能{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    /* 基礎樣式和變數 */
+    :root {
+        --primary-color: #6c5ce7;
+        --secondary-color: #a29bfe;
+        --success-color: #00b894;
+        --info-color: #0984e3;
+        --warning-color: #fdcb6e;
+        --danger-color: #d63031;
+        --dark-color: #2d3436;
+        --light-color: #f5f6fa;
+        --border-radius: 10px;
+        --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        --transition: all 0.3s ease;
+    }
+    
+    /* 整體佈局 */
+    body {
+        background-color: #f5f6fa;
+        min-height: 100vh;
+    }
+    
+    /* 移除側邊欄覆寫樣式，使用 admin_base.html 中的樣式 */
+    
+    /* 儀表板卡片元素 */
+    .stat-card {
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        padding: 20px;
+        margin-bottom: 20px;
+        transition: all 0.2s;
+        height: 100%;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+    }
+    
+    .stat-card-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 15px;
+        color: white;
+        font-size: 1.5rem;
+    }
+    
+    .stat-card-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+    }
+    
+    .stat-card-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    .stat-primary .stat-card-icon {
+        background-color: var(--primary-color);
+    }
+    
+    .stat-success .stat-card-icon {
+        background-color: var(--success-color);
+    }
+    
+    .stat-warning .stat-card-icon {
+        background-color: var(--warning-color);
+    }
+    
+    .stat-info .stat-card-icon {
+        background-color: var(--info-color);
+    }
+
+    .tag-stats-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    
+    .tag-stats-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .tag-stats-item:last-child {
+        border-bottom: none;
+    }
+    
+    .tag-stats-info {
+        display: flex;
+        align-items: center;
+    }
+    
+    .tag-stats-icon {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 10px;
+        color: white;
+        font-size: 0.8rem;
+    }
+    
+    .tag-stats-name {
+        font-weight: 500;
+    }
+    
+    .tag-stats-count {
+        font-weight: 600;
+        background-color: #f8f9fa;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+    }
+    
+    .progress {
+        height: 5px;
+        margin-top: 8px;
+        border-radius: 10px;
+        background-color: #f1f1f1;
+    }
+    
+    .testimonial-item {
+        padding: 15px;
+        margin-bottom: 15px;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .testimonial-item:last-child {
+        margin-bottom: 0;
+        border-bottom: none;
+    }
+    
+    .testimonial-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    
+    .testimonial-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 12px;
+        overflow: hidden;
+    }
+    
+    .testimonial-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .testimonial-user {
+        margin-right: auto;
+    }
+    
+    .testimonial-username {
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 2px;
+    }
+    
+    .testimonial-date {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+    
+    .testimonial-content {
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+        line-height: 1.5;
+    }
+    
+    .admin-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    
+    .admin-table thead th {
+        background-color: #f8f9fa;
+        padding: 12px 15px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #495057;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .admin-table tbody td {
+        padding: 12px 15px;
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        font-size: 0.95rem;
+    }
+    
+    .admin-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .admin-table tbody tr:hover {
+        background-color: rgba(0,0,0,0.01);
+    }
+    
+    .admin-table-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f1f1f1;
+    }
+    
+    .admin-table-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 40px 0;
+    }
+    
+    .empty-state-icon {
+        font-size: 3rem;
+        color: #dee2e6;
+        margin-bottom: 20px;
+    }
+    
+    .empty-state-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 10px;
+    }
+    
+    .empty-state-text {
+        color: #6c757d;
+        max-width: 300px;
+        margin: 0 auto 20px auto;
+        font-size: 0.9rem;
+    }
+    
+    /* 最近活動卡片 */
+    .activity-card {
+        border-radius: var(--border-radius);
+        border: none;
+        box-shadow: var(--card-shadow);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .activity-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 15px 20px;
+        background-color: white;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .activity-card-title {
+        font-weight: 600;
+        margin: 0;
+        color: var(--dark-color);
+        display: flex;
+        align-items: center;
+    }
+    
+    .activity-card-title i {
+        margin-right: 10px;
+        color: var(--primary-color);
+    }
+    
+    .activity-card-body {
+        padding: 0;
+        background-color: white;
+    }
+    
+    /* 功能卡片元素樣式 */
+    .feature-card {
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+    
+    .feature-card-header {
+        padding: 20px 20px 15px 20px;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        display: flex;
+        align-items: center;
+    }
+    
+    .feature-card-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        flex-shrink: 0;
+        color: white;
+        font-size: 1.5rem;
+    }
+    
+    .feature-card-title {
+        flex-grow: 1;
+    }
+    
+    .feature-card-title h4 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin: 0 0 3px 0;
+    }
+    
+    .feature-card-title p {
+        margin: 0;
+        color: #6c757d;
+        font-size: 0.85rem;
+    }
+    
+    .feature-card-body {
+        padding: 20px;
+    }
+    
+    .feature-card-actions {
+        padding: 0 20px 20px 20px;
+    }
+    
+    .feature-link {
+        display: flex;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        color: var(--dark-color);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .feature-link:last-child {
+        border-bottom: none;
+    }
+    
+    .feature-link:hover {
+        color: var(--primary-color);
+        transform: translateX(5px);
+    }
+    
+    .feature-link i {
+        margin-right: 10px;
+        width: 20px;
+        text-align: center;
+        color: var(--primary-color);
+    }
+    
+    .welcome-banner {
+        background: linear-gradient(135deg, rgba(108, 92, 231, 0.9), rgba(72, 52, 212, 0.9)), url('https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?auto=format&fit=crop&q=80');
+        background-size: cover;
+        background-position: center;
+        border-radius: var(--border-radius);
+        color: white;
+        padding: 30px;
+        margin-bottom: 30px;
+        position: relative;
+    }
+    
+    .welcome-banner h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+    
+    .welcome-banner p {
+        font-size: 1.1rem;
+        max-width: 600px;
+        margin-bottom: 20px;
+        opacity: 0.9;
+    }
+    
+    .welcome-banner .btn {
+        background-color: rgba(255, 255, 255, 0.2);
+        border: 2px solid white;
+        color: white;
+        transition: all 0.3s;
+    }
+    
+    .welcome-banner .btn:hover {
+        background-color: white;
+        color: var(--primary-color);
+    }
+    
+    .icon-primary { background-color: var(--primary-color); }
+    .icon-success { background-color: var(--success-color); }
+    .icon-warning { background-color: var(--warning-color); }
+    .icon-info { background-color: var(--info-color); }
+    .icon-danger { background-color: var(--danger-color); }
+    .icon-secondary { background-color: #718093; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 歡迎橫幅 -->
+<div class="welcome-banner">
+    <h2>歡迎使用管理員儀表板</h2>
+    <p>這裡提供了系統所有主要功能的快速訪問，您可以輕鬆管理成員、標籤、留言和系統設置。</p>
+    <a href="https://github.com/yourusername/dhs-personPage2.0" target="_blank" class="admin-btn admin-btn-lg">
+        <i class="fab fa-github me-2"></i>查看專案文檔
+    </a>
+</div>
+
+<!-- 成員管理功能 -->
+<h3 class="mb-4"><i class="fas fa-users me-2 text-primary"></i>成員管理</h3>
+<div class="row g-4 mb-5">
+    <div class="col-lg-4">
+        <div class="feature-card">
+            <div class="feature-card-header">
+                <div class="feature-card-icon icon-primary">
+                    <i class="fas fa-user-cog"></i>
+                </div>
+                <div class="feature-card-title">
+                    <h4>成員列表與搜尋</h4>
+                    <p>管理所有系統成員</p>
+                </div>
+            </div>
+            <div class="feature-card-body">
+                <p>此功能允許您查看、搜尋、編輯和管理系統中的所有用戶。您可以啟用或停用用戶帳戶，編輯個人資料，分配標籤等。</p>
+                <div class="feature-links mt-3">
+                    <a href="{{ url_for('main.admin_manage_users') }}" class="feature-link">
+                        <i class="fas fa-list"></i>查看所有成員
+                    </a>
+                </div>
+            </div>
+            <div class="feature-card-actions">
+                <a href="{{ url_for('main.admin_manage_users') }}" class="admin-btn admin-btn-primary admin-btn-block">
+                    <i class="fas fa-users me-2"></i>前往成員管理
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="feature-card">
+            <div class="feature-card-header">
+                <div class="feature-card-icon icon-success">
+                    <i class="fas fa-tags"></i>
+                </div>
+                <div class="feature-card-title">
+                    <h4>標籤分類系統</h4>
+                    <p>創建與管理成員標籤</p>
+                </div>
+            </div>
+            <div class="feature-card-body">
+                <p>建立自定義標籤以便分類和組織成員。您可以設置標籤名稱、顏色和圖示，並將標籤分配給適當的用戶。</p>
+                <div class="feature-links mt-3">
+                    <a href="{{ url_for('main.admin_manage_tags') }}" class="feature-link">
+                        <i class="fas fa-tag"></i>管理所有標籤
+                    </a>
+                </div>
+            </div>
+            <div class="feature-card-actions">
+                <a href="{{ url_for('main.admin_manage_tags') }}" class="admin-btn admin-btn-success admin-btn-block">
+                    <i class="fas fa-tags me-2"></i>管理標籤系統
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="feature-card">
+            <div class="feature-card-header">
+                <div class="feature-card-icon icon-warning">
+                    <i class="fas fa-comment-dots"></i>
+                </div>
+                <div class="feature-card-title">
+                    <h4>成員留言管理</h4>
+                    <p>審核與管理用戶留言</p>
+                </div>
+            </div>
+            <div class="feature-card-body">
+                <p>審核、編輯和管理用戶留言。您可以批准或拒絕顯示留言，編輯不當內容，或完全刪除留言。</p>
+                <div class="feature-links mt-3">
+                    <a href="{{ url_for('main.admin_manage_testimonials') }}" class="feature-link">
+                        <i class="fas fa-comment-alt"></i>查看所有留言
+                    </a>
+                </div>
+            </div>
+            <div class="feature-card-actions">
+                <a href="{{ url_for('main.admin_manage_testimonials') }}" class="admin-btn admin-btn-warning admin-btn-block">
+                    <i class="fas fa-comment-dots me-2"></i>管理成員留言
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 系統設置功能 -->
+<h3 class="mb-4"><i class="fas fa-cogs me-2 text-primary"></i>系統設置</h3>
+<div class="row g-4 mb-5">
+    <div class="col-lg-4">
+        <div class="feature-card">
+            <div class="feature-card-header">
+                <div class="feature-card-icon icon-info">
+                    <i class="fas fa-key"></i>
+                </div>
+                <div class="feature-card-title">
+                    <h4>註冊金鑰管理</h4>
+                    <p>管理系統註冊憑證</p>
+                </div>
+            </div>
+            <div class="feature-card-body">
+                <p>管理用於註冊系統的金鑰和管理員代碼。您可以查看、重新生成或撤銷現有的金鑰，控制系統的註冊訪問權限。</p>
+                <div class="feature-links mt-3">
+                    <a href="{{ url_for('main.admin_manage_keys') }}" class="feature-link">
+                        <i class="fas fa-key"></i>管理註冊金鑰
+                    </a>
+                </div>
+            </div>
+            <div class="feature-card-actions">
+                <a href="{{ url_for('main.admin_manage_keys') }}" class="admin-btn admin-btn-info admin-btn-block">
+                    <i class="fas fa-key me-2"></i>金鑰管理
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="feature-card">
+            <div class="feature-card-header">
+                <div class="feature-card-icon icon-secondary">
+                    <i class="fas fa-link"></i>
+                </div>
+                <div class="feature-card-title">
+                    <h4>公開頁面設置</h4>
+                    <p>管理公開網站設置</p>
+                </div>
+            </div>
+            <div class="feature-card-body">
+                <p>設置和管理公開首頁和個人資料頁的導航連結和社群媒體連結，自定義網站的外觀和功能。</p>
+                <div class="feature-links mt-3">
+                    <a href="{{ url_for('main.admin_public_settings') }}" class="feature-link">
+                        <i class="fas fa-globe"></i>公開頁面設置
+                    </a>
+                    <a href="{{ url_for('main.admin_manage_social_links') }}" class="feature-link">
+                        <i class="fas fa-share-alt"></i>社群媒體連結
+                    </a>
+                    <a href="{{ url_for('main.admin_manage_nav_links') }}" class="feature-link">
+                        <i class="fas fa-bars"></i>導航菜單管理
+                    </a>
+                </div>
+            </div>
+            <div class="feature-card-actions">
+                <a href="{{ url_for('main.admin_public_settings') }}" class="admin-btn admin-btn-secondary admin-btn-block">
+                    <i class="fas fa-cog me-2"></i>網站設置
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="feature-card">
+            <div class="feature-card-header">
+                <div class="feature-card-icon icon-danger">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <div class="feature-card-title">
+                    <h4>管理員設置</h4>
+                    <p>管理系統管理員</p>
+                </div>
+            </div>
+            <div class="feature-card-body">
+                <p>查看和管理系統的管理員帳戶。您可以添加或撤銷管理員權限，編輯個人資料，或更新聯絡信息。</p>
+                <div class="feature-links mt-3">
+                    <a href="{{ url_for('main.admin_manage_admins') }}" class="feature-link">
+                        <i class="fas fa-user-cog"></i>管理員列表
+                    </a>
+                </div>
+            </div>
+            <div class="feature-card-actions">
+                <a href="{{ url_for('main.admin_manage_admins') }}" class="admin-btn admin-btn-danger admin-btn-block">
+                    <i class="fas fa-user-shield me-2"></i>管理員設置
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快速操作區塊 -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-bolt"></i>
+            常用操作
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        <div class="row g-3">
+            <div class="col-md-3 col-sm-6">
+                <a href="{{ url_for('main.admin_manage_users') }}" class="admin-btn admin-btn-primary admin-btn-block">
+                    <i class="fas fa-users me-2"></i>
+                    管理成員
+                </a>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <a href="{{ url_for('main.admin_manage_tags') }}" class="admin-btn admin-btn-success admin-btn-block">
+                    <i class="fas fa-tags me-2"></i>
+                    管理標籤
+                </a>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <a href="{{ url_for('main.admin_manage_testimonials') }}" class="admin-btn admin-btn-warning admin-btn-block">
+                    <i class="fas fa-comment-dots me-2"></i>
+                    管理留言
+                </a>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <a href="{{ url_for('main.index') }}" class="admin-btn admin-btn-info admin-btn-block" target="_blank">
+                    <i class="fas fa-external-link-alt me-2"></i>
+                    查看公開頁面
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 新增卡片的懸停效果
+    document.querySelectorAll('.feature-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px)';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+});
+</script>
+{% endblock %}

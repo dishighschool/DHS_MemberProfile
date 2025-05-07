@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="theme-color" content="#000000">
+    <title>{% if title %}{{ title }} - {% endif %}DisHighSchool 迪斯中學</title>
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='images/loginicon.png') }}" type="image/x-icon">
+    <!-- 字體 -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap">
+    <!-- 引入 Bootstrap 5.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- AOS 動畫庫 -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <!-- Ionicons -->
+    <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <!-- 漸層樣式表 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/gradients.css') }}">
+    <!-- 站點基礎樣式 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        :root {
+            /* 深色模式調色板 */
+            --primary-color: #7983d4;       /* 主題藍色 */
+            --primary-light: #9aa3ee;       /* 淺藍色 */
+            --primary-dark: #5357be;        /* 深藍色 */
+            --secondary-color: #6a3de0;     /* 深紫色輔助色 */
+            --accent-color: #F24C3D;        /* 亮紅色強調色 */
+            --purple: #C58CFF;              /* 紫色 - 保留以供參考 */
+            --red: #E63946;                 /* 紅色 */
+            --blue: #4A90E2;                /* 藍色 */
+            --grey: #888888;                /* 灰色 */
+            
+            --text-light: #FFFFFF;          /* 白色文字 */
+            --text-standard: rgba(255, 255, 255, 0.87); /* 標準文字顏色 */
+            --text-muted: rgba(255, 255, 255, 0.6);     /* 次要文字顏色 */
+            
+            --bg-dark: #000000;             /* 主要背景色 - 純黑 */
+            --bg-card: #1a1a1a;             /* 卡片背景色 */
+            --bg-elevated: #222222;         /* 稍微提升的元素背景 */
+            --bg-gradient: linear-gradient(135deg, #1A0038 0%, #32007A 50%, #6237A0 100%); /* 漸層背景 */
+            
+            --border-color: rgba(255, 255, 255, 0.1); /* 邊框顏色 */
+            --transition: 0.6s;                       /* 轉場時間 */
+            
+            --border-radius-sm: 8px;
+            --border-radius: 12px;
+            --border-radius-lg: 24px;
+            
+            --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.2);
+            --shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+            --shadow-lg: 0 15px 50px rgba(0, 0, 0, 0.4);
+            
+            --glow-primary: 0 0 15px rgba(121, 131, 212, 0.5); /* 藍色光暈 */
+            --glow-secondary: 0 0 15px rgba(106, 61, 224, 0.4); /* 次要色光暈 */
+            --glow-purple: 0 0 15px rgba(197, 140, 255, 0.4);   /* 紫色光暈 - 保留以供參考 */
+        }
+    </style>
+    {% block styles %}{% endblock %}
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body, html {
+            font-family: 'Noto Sans TC', sans-serif;
+            color: var(--text-standard);
+            /* 移除固定背景色，改為由子模板設定 */
+            line-height: 1.6;
+            min-height: 100vh;
+            width: 100%;
+            overflow-x: hidden;
+        }
+        
+        /* 提供默認背景，只有在沒有應用漸層時才會顯示 */
+        body:not([class*='gradient-']) {
+            background-color: var(--bg-dark);
+        }
+        
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 通知提示樣式 - 深色版 */
+        .alert {
+            background-color: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            color: var(--text-standard);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+        }
+        
+        .alert-success {
+            border-left: 4px solid #22c55e;
+        }
+        
+        .alert-danger {
+            border-left: 4px solid #ef4444;
+        }
+        
+        .alert-info {
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .alert-warning {
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .alert .btn-close {
+            filter: invert(1);
+        }
+        
+        /* 主要內容區 */
+        .main-container {
+            flex-grow: 1;
+            padding: 0;
+            width: 100%;
+            position: relative;
+        }
+        
+        /* 卡片通用樣式 - 深色版 */
+        .card {
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            background-color: var(--bg-card);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            height: 100%;
+            color: var(--text-standard);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow);
+            border-color: rgba(121, 131, 212, 0.3);
+        }
+        
+        .card-header {
+            background-color: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px;
+            font-weight: 700;
+            color: var(--text-light);
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        /* 按鈕樣式 - 深色版 */
+        .btn {
+            padding: 10px 24px;
+            border-radius: var(--border-radius-sm);
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: var (--text-light);
+        }
+        
+        .btn-primary:hover, .btn-primary:focus {
+            background-color: var (--primary-light);
+            border-color: var(--primary-light);
+            box-shadow: var(--glow-primary);
+            transform: translateY(-2px);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-light);
+            border-color: var(--primary-color);
+            background-color: transparent;
+        }
+        
+        .btn-outline-primary:hover, .btn-outline-primary:focus {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: var(--text-light);
+            box-shadow: var(--glow-primary);
+            transform: translateY(-2px);
+        }
+
+        .btn-youtube {
+            background-color: #FF0000;
+            border-color: #FF0000;
+            color: var(--text-light);
+        }
+        
+        .btn-youtube:hover {
+            background-color: #D90000;
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+        }
+        
+        .btn-quiz {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+        
+        .btn-quiz:hover {
+            background-color: #e3392a;
+            box-shadow: 0 0 15px rgba(242, 76, 61, 0.4);
+        }
+        
+        .btn-social {
+            background-color: #C13584;
+            border-color: #C13584;
+        }
+        
+        .btn-social:hover {
+            background-color: #a62e70;
+            box-shadow: 0 0 15px rgba(193, 53, 132, 0.4);
+        }
+        
+        /* 鏈接樣式 - 深色版 */
+        a {
+            color: var(--primary-light);
+            text-decoration: none !important; /* 強制移除所有連結底線 */
+            transition: all 0.2s ease;
+        }
+        
+        a:hover, a:focus {
+            color: var(--primary-light);
+            text-decoration: none !重要;
+            opacity: 0.9;
+        }
+        
+        /* 頁腳 - 深色版 */
+        .public-footer {
+            background-color: var(--bg-card);
+            color: var(--text-light);
+            padding: 20px 0;
+            margin-top: auto;
+            box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.2);
+            border-top: 1px solid var(--border-color);
+            position: relative;
+            z-index: 10;
+            text-align: center;
+        }
+        
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .footer-info {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .social-links {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        
+        .social-links a {
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            transition: all 0.3s;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--bg-elevated);
+        }
+        
+        .social-links a:hover {
+            color: var(--text-light);
+            background-color: var(--primary-dark);
+            transform: translateY(-3px);
+            box-shadow: var(--glow-primary);
+        }
+        
+        .copyright {
+            margin-top: 15px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+        
+        /* 文本顏色 */
+        .text-muted {
+            color: var(--text-muted) !important;
+        }
+        
+        .lead {
+            color: var(--text-standard);
+            font-weight: 400;
+        }
+
+        /* 頂部導航 - 簡化版 */
+        .simple-header {
+            background-color: rgba(26, 26, 26, 0.98);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.15);
+            padding: 15px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .site-logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none !important; /* 防止底線出現 */
+        }
+        
+        .site-logo img {
+            height: 40px;
+            width: auto;
+        }
+        
+        .site-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-light);
+            margin: 0;
+        }
+        
+        .site-name span {
+            background: linear-gradient(to right, var(--primary-light), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .nav-link {
+            color: var(--text-standard);
+            text-decoration: none;
+            transition: color 0.3s;
+            font-weight: 500;
+            font-size: 1rem;
+            position: relative;
+        }
+        
+        .nav-link:hover {
+            color: var(--text-light);
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary-light);
+            transition: width 0.3s;
+        }
+        
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        .mobile-menu-button {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-light);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .nav-links.show {
+                display: flex;
+                flex-direction: column;
+                position: absolute;
+                top: 70px;
+                left: 0;
+                right: 0;
+                background-color: var(--bg-card);
+                padding: 20px;
+                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            }
+            
+            .mobile-menu-button {
+                display: block;
+            }
+        }
+
+        /* 對話框樣式 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        
+        .modal.show {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .modal-content {
+            background: var(--bg-card);
+            color: var(--text-light);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: var(--shadow-lg);
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+        
+        .modal.show .modal-content {
+            transform: translateY(0);
+        }
+        
+        .modal-content button {
+            margin: 10px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: var (--border-radius-sm);
+            background: var(--blue);
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .modal-content button#quiz-button {
+            background: var(--red);
+        }
+        
+        .modal-content button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .top-nav {
+                top: 20px;
+                right: 20px;
+                padding: 8px 20px;
+            }
+            
+            .top-nav a {
+                margin: 0 10px;
+                font-size: 0.95rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .top-nav {
+                position: fixed;
+                top: auto;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 10px 15px;
+                width: 90%;
+                justify-content: space-around;
+            }
+            
+            .top-nav a {
+                margin: 0 5px;
+                font-size: 0.85rem;
+            }
+        }
+        
+        /* 社群媒體連結特效 */
+        .social-links a {
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            transition: all 0.3s;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--bg-elevated);
+        }
+        
+        .social-links a:hover {
+            color: var(--text-light);
+            background-color: var(--primary-dark);
+            transform: translateY(-3px);
+            box-shadow: var(--glow-primary);
+        }
+        
+        /* 活躍的導航連結 */
+        .nav-link.active {
+            color: var(--primary-light);
+            font-weight: 600;
+        }
+        
+        .nav-link.active::after {
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    <!-- 如果有漸層背景，添加漸層疊加層 -->
+    {% if use_gradient_overlay is defined and use_gradient_overlay %}
+    <div class="gradient-overlay"></div>
+    {% endif %}
+    
+    <!-- 簡易導覽列 - 使用圖片作為標誌 -->
+    <header class="simple-header">
+        <div class="container header-container">
+            <a href="{{ url_for('main.index') }}" class="site-logo">
+                <img src="{{ url_for('static', filename='images/loginwithtext_white.png') }}" alt="DisHighSchool Logo">
+            </a>
+            <button class="mobile-menu-button" id="mobile-menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="nav-links" id="nav-links">
+                <a href="{{ url_for('main.index') }}" class="nav-link {% if request.path == url_for('main.index') %}active{% endif %}">成員總覽</a>
+                
+                <!-- 動態載入自定義導航連結 -->
+                {% if nav_links %}
+                    {% for link in nav_links %}
+                        <a href="{{ link.url }}" class="nav-link" 
+                           {% if link.open_in_new_tab %}target="_blank"{% endif %}>
+                            {% if link.icon_class %}<i class="{{ link.icon_class }} me-1"></i>{% endif %}
+                            {{ link.title }}
+                        </a>
+                    {% endfor %}
+                {% endif %}
+                
+            </div>
+        </div>
+    </header>
+    
+    <!-- 頁面內容 -->
+    <div class="main-container">
+        <!-- 彈出通知 -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="container mt-3">
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {% if category == 'success' %}
+                            <i class="fas fa-check-circle me-2"></i>
+                        {% elif category == 'danger' %}
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                        {% elif category == 'info' %}
+                            <i class="fas fa-info-circle me-2"></i>
+                        {% elif category == 'warning' %}
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                        {% endif %}
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- 頁面主內容 -->
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- 關於我們模態框 -->
+    <div class="modal" id="about-modal">
+        <div class="modal-content">
+            <h3>關於 DisHighSchool 迪斯中學</h3>
+            <p>DisHighSchool 迪斯中學是一個多元創新的社群平台，致力於知識分享與創新。我們聚集各領域專業人才，共同打造協作交流的優質環境。</p>
+            <button id="about-close">關閉</button>
+        </div>
+    </div>
+
+    <!-- 精簡頁腳 - 適合手機端 -->
+    <footer class="public-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <img src="{{ url_for('static', filename='images/loginwithtext_white.png') }}" alt="DisHighSchool" height="40" class="footer-logo">
+                    <div class="social-links">
+                        <!-- 動態載入自定義社群媒體連結 -->
+                        {% if public_social_links %}
+                            {% for link in public_social_links %}
+                                <a href="{{ link.url }}" target="_blank" aria-label="{{ link.title }}">
+                                    <i class="{{ link.icon_class }}"></i>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <p>目前沒有社群媒體連結可供顯示。</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="copyright">
+                    <p>&copy; {{ now.year }} DisHighSchool 迪斯中學</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 引入 JS 庫 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <!-- 引入漸層管理腳本 -->
+    <script src="{{ url_for('static', filename='js/gradients.js') }}"></script>
+    <script>
+        // 初始化 AOS 動畫庫
+        document.addEventListener('DOMContentLoaded', function() {
+            AOS.init({
+                duration: 800,
+                easing: 'ease-in-out',
+                once: true
+            });
+            
+            // 移動選單
+            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+            const navLinks = document.getElementById('nav-links');
+            
+            if (mobileMenuToggle) {
+                mobileMenuToggle.addEventListener('click', function() {
+                    navLinks.classList.toggle('show');
+                });
+            }
+            
+            // 關於我們模態框操作
+            const aboutModal = document.getElementById('about-modal');
+            const aboutClose = document.getElementById('about-close');
+            const aboutLinks = document.querySelectorAll('#about-link, #footer-about-link');
+            
+            aboutLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    aboutModal.classList.add('show');
+                });
+            });
+            
+            if (aboutClose) {
+                aboutClose.addEventListener('click', function() {
+                    aboutModal.classList.remove('show');
+                });
+            }
+            
+            window.addEventListener('click', function(e) {
+                if (e.target === aboutModal) {
+                    aboutModal.classList.remove('show');
+                });
+            });
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

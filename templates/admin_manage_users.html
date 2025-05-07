@@ -1,0 +1,291 @@
+{% extends "admin_base.html" %}
+
+{% block title %}成員管理{% endblock %}
+{% block header_title %}成員管理{% endblock %}
+
+{% block page_icon_class %}fas fa-users{% endblock %}
+{% block page_title %}成員管理{% endblock %}
+{% block page_subtitle %}管理系統所有註冊用戶{% endblock %}
+
+{% block content %}
+<!-- 搜尋與過濾區塊 -->
+<div class="admin-card mb-4">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-search"></i>
+            搜尋與過濾
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        <div class="row g-3">
+            <!-- 搜尋表單 -->
+            <div class="col-lg-8">
+                <form class="d-flex" action="{{ url_for('main.admin_manage_users') }}" method="GET">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="搜尋用戶名、顯示名稱或 Discord ID..." 
+                              name="search" value="{{ search_query or '' }}">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search"></i> 搜尋
+                        </button>
+                        {% if search_query %}
+                        <a href="{{ url_for('main.admin_manage_users') }}" class="btn btn-outline-danger">
+                            <i class="fas fa-times"></i> 清除
+                        </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+            
+            <!-- 標籤過濾 -->
+            <div class="col-lg-4">
+                <div class="dropdown w-100">
+                    <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" 
+                           id="tagFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-tags me-1"></i> 
+                        {% if selected_tag %}
+                        按標籤過濾: {{ selected_tag.display_name }}
+                        {% else %}
+                        按標籤過濾
+                        {% endif %}
+                    </button>
+                    <ul class="dropdown-menu w-100" aria-labelledby="tagFilterDropdown">
+                        <li>
+                            <a class="dropdown-item {% if not selected_tag %}active{% endif %}" 
+                               href="{{ url_for('main.admin_manage_users', search=search_query or None) }}">
+                                所有標籤
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% for tag in all_tags %}
+                        <li>
+                            <a class="dropdown-item {% if selected_tag and selected_tag.id == tag.id %}active{% endif %}" 
+                               href="{{ url_for('main.admin_manage_users', tag_id=tag.id, search=search_query or None) }}">
+                                <div style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: {{ tag.color }}; margin-right: 8px;"></div>
+                                {% if tag.icon_class %}<i class="{{ tag.icon_class }}"></i>{% endif %} 
+                                {{ tag.display_name }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 用戶列表 -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-user-friends"></i>
+            用戶列表
+            {% if users %}<span class="badge bg-primary ms-2">{{ pagination.total if pagination else users|length }}</span>{% endif %}
+        </h3>
+        <div>
+            <a href="{{ url_for('main.admin_dashboard') }}" class="admin-btn admin-btn-sm admin-btn-outline">
+                <i class="fas fa-arrow-left"></i> 返回儀表板
+            </a>
+        </div>
+    </div>
+    <div class="admin-card-body p-0">
+        {% if users %}
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px;"></th>
+                        <th>用戶資訊</th>
+                        <th>Discord ID</th>
+                        <th>標籤</th>
+                        <th style="width: 100px;">狀態</th>
+                        <th style="width: 180px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>
+                            <div class="admin-table-avatar">
+                                {% if user.avatar %}
+                                <img src="{{ user.avatar }}" alt="{{ user.username }}">
+                                {% else %}
+                                <i class="fas fa-user text-secondary"></i>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex flex-column">
+                                <div class="fw-bold">{{ user.display_name or user.username }}</div>
+                                <div class="text-muted small">@{{ user.username }}</div>
+                                <div class="text-muted small">{{ user.email or 'Email未設定' }}</div>
+                                <div class="text-muted small">加入於 {{ user.created_at.strftime('%Y-%m-%d') }}</div>
+                            </div>
+                        </td>
+                        <td>{{ user.discord_id or '-' }}</td>
+                        <td>
+                            {% for tag in user.tags %}
+                            <span class="badge mb-1" style="background-color: {{ tag.color }}">
+                                {% if tag.icon_class %}<i class="{{ tag.icon_class }} me-1"></i>{% endif %}
+                                {{ tag.display_name }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">無標籤</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if user.is_verified %}
+                            <span class="admin-tag admin-tag-success">
+                                <i class="fas fa-check-circle"></i> 已啟用
+                            </span>
+                            {% else %}
+                            <span class="admin-tag admin-tag-warning">
+                                <i class="fas fa-times-circle"></i> 已停用
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <a href="{{ url_for('main.admin_edit_user', user_id=user.id, page=pagination.page if pagination else 1, search=search_query or None) }}" 
+                                   class="admin-btn admin-btn-sm admin-btn-outline" data-bs-toggle="tooltip" title="編輯用戶">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                
+                                <button type="button" class="admin-btn admin-btn-sm admin-btn-outline" 
+                                       data-bs-toggle="modal" data-bs-target="#tagModal{{ user.id }}" title="管理標籤">
+                                    <i class="fas fa-tags"></i>
+                                </button>
+                                
+                                <form action="{{ url_for('main.admin_toggle_verify_user', user_id=user.id) }}" 
+                                     method="POST" class="d-inline">
+                                    <input type="hidden" name="page" value="{{ pagination.page if pagination else 1 }}">
+                                    <input type="hidden" name="search" value="{{ search_query or '' }}">
+                                    {% if user.is_verified %}
+                                    <button type="submit" class="admin-btn admin-btn-sm admin-btn-warning" data-bs-toggle="tooltip" title="停用帳戶">
+                                        <i class="fas fa-user-slash"></i>
+                                    </button>
+                                    {% else %}
+                                    <button type="submit" class="admin-btn admin-btn-sm admin-btn-success" data-bs-toggle="tooltip" title="啟用帳戶">
+                                        <i class="fas fa-user-check"></i>
+                                    </button>
+                                    {% endif %}
+                                </form>
+                                
+                                <form action="{{ url_for('main.admin_delete_user', user_id=user.id) }}" 
+                                     method="POST" class="d-inline" onsubmit="return confirmDelete('{{ user.display_name or user.username }}')">
+                                    <input type="hidden" name="page" value="{{ pagination.page if pagination else 1 }}">
+                                    <input type="hidden" name="search" value="{{ search_query or '' }}">
+                                    <button type="submit" class="admin-btn admin-btn-sm admin-btn-danger" data-bs-toggle="tooltip" title="刪除帳戶">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </div>
+                            
+                            <!-- 標籤管理模態框 -->
+                            <div class="modal fade" id="tagModal{{ user.id }}" tabindex="-1" aria-labelledby="tagModalLabel{{ user.id }}" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="tagModalLabel{{ user.id }}">
+                                                <i class="fas fa-tags me-2"></i>管理 {{ user.display_name or user.username }} 的標籤
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form action="{{ url_for('main.admin_update_user_tags', user_id=user.id) }}" 
+                                                 method="POST" id="tagForm{{ user.id }}">
+                                                <input type="hidden" name="page" value="{{ pagination.page if pagination else 1 }}">
+                                                <input type="hidden" name="search" value="{{ search_query or '' }}">
+                                                {% if selected_tag %}
+                                                <input type="hidden" name="tag_id" value="{{ selected_tag.id }}">
+                                                {% endif %}
+                                                <div class="mb-3">
+                                                    <p class="text-muted small">為用戶選擇適合的標籤（可多選）</p>
+                                                    <div class="tag-selection">
+                                                        {% for tag in all_tags %}
+                                                        <div class="form-check form-check-inline mb-2">
+                                                            <input class="form-check-input" type="checkbox" 
+                                                                  id="tag{{ user.id }}_{{ tag.id }}" name="tags[]" 
+                                                                  value="{{ tag.id }}" {% if tag in user.tags %}checked{% endif %}>
+                                                            <label class="form-check-label" for="tag{{ user.id }}_{{ tag.id }}">
+                                                                <span class="badge" style="background-color: {{ tag.color }}">
+                                                                    {% if tag.icon_class %}<i class="{{ tag.icon_class }} me-1"></i>{% endif %}
+                                                                    {{ tag.display_name }}
+                                                                </span>
+                                                            </label>
+                                                        </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                            <button type="submit" class="btn btn-primary" form="tagForm{{ user.id }}">儲存標籤</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 分頁導航 -->
+        {% if pagination and pagination.pages > 1 %}
+        <div class="admin-card-footer">
+            <nav aria-label="用戶分頁">
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('main.admin_manage_users', page=pagination.prev_num, search=search_query or None, tag_id=selected_tag.id if selected_tag else None) if pagination.has_prev else '#' }}" aria-label="上一頁">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% for page_num in pagination.iter_pages() %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('main.admin_manage_users', page=page_num, search=search_query or None, tag_id=selected_tag.id if selected_tag else None) }}">
+                                    {{ page_num }}
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('main.admin_manage_users', page=pagination.next_num, search=search_query or None, tag_id=selected_tag.id if selected_tag else None) if pagination.has_next else '#' }}" aria-label="下一頁">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-users fa-3x text-secondary mb-3"></i>
+            <p class="mb-1">{% if search_query %}找不到符合 "{{ search_query }}" 的用戶。{% else %}目前沒有註冊用戶。{% endif %}</p>
+            <p class="text-muted">用戶需要通過 Discord 登入並完成團隊驗證才會出現在這裡</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+function confirmDelete(displayNameOrUsername) {
+    return confirm(`您確定要刪除用戶 "${displayNameOrUsername}" 嗎？此操作無法復原。`);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化所有 tooltips
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+});
+</script>
+{% endblock %}

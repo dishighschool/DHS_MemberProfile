@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        {% if user.avatar %}
+                        <img src="{{ user.avatar }}" class="user-avatar mb-3" alt="{{ user.username }}">
+                        {% else %}
+                        <div class="user-avatar mx-auto mb-3 d-flex align-items-center justify-content-center" style="background-color: rgba(255,255,255,0.1);">
+                            <i class="fas fa-user fa-2x text-white-50"></i>
+                        </div>
+                        {% endif %}
+                        <h2 class="mb-3">歡迎加入，<strong>{{ user.username }}</strong>！</h2>
+                        <p class="fs-5 mb-4">您的帳戶已成功驗證。</p>
+                    </div>
+                    
+                    <div class="glass p-4">
+                        <p class="mb-4">現在您可以前往個人介面，開始編輯您的個人資料和社交連結。</p>
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-user-edit me-2"></i> 前往個人介面
+                        </a>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <small>
+                            您隨時可以從頁面頂部的導覽列進入個人介面。
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center text-muted mt-3">
+                <p>有任何問題？請聯繫我們的管理員。</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

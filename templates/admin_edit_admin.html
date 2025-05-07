@@ -1,0 +1,136 @@
+{% extends "admin_base.html" %}
+
+{% block title %}編輯管理員{% endblock %}
+{% block header_title %}編輯管理員{% endblock %}
+
+{% block page_icon_class %}fas fa-user-edit{% endblock %}
+{% block page_title %}編輯管理員資料{% endblock %}
+{% block page_subtitle %}修改 {{ admin.display_name or admin.username }} 的管理員資訊{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 左側 - 管理員資訊卡片 -->
+    <div class="col-lg-4 mb-4">
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h3 class="admin-card-title">
+                    <i class="admin-card-icon fas fa-id-card"></i>
+                    管理員資訊
+                </h3>
+            </div>
+            <div class="admin-card-body">
+                <div class="text-center mb-4">
+                    <img src="{{ admin.avatar or url_for('static', filename='images/default_avatar.png') }}" alt="{{ admin.username }}" class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1);">
+                    <h4 class="mt-3 mb-1">{{ admin.display_name or admin.username }}</h4>
+                    <div class="text-muted">@{{ admin.username }}</div>
+                    
+                    {% if admin.id == current_user.id %}
+                    <span class="admin-tag admin-tag-danger mt-2">
+                        <i class="fas fa-user-check me-1"></i>目前登入的用戶
+                    </span>
+                    {% else %}
+                    <span class="admin-tag admin-tag-primary mt-2">
+                        <i class="fas fa-shield-alt me-1"></i>管理員
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="admin-info-list">
+                    <div class="admin-info-item d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted"><i class="far fa-envelope me-2"></i>電子郵件</span>
+                        <span>{{ admin.email or '未設定' }}</span>
+                    </div>
+                    <div class="admin-info-item d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted"><i class="far fa-calendar-alt me-2"></i>註冊日期</span>
+                        <span>{{ admin.created_at.strftime('%Y-%m-%d') }}</span>
+                    </div>
+                    <div class="admin-info-item d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted"><i class="far fa-clock me-2"></i>上次登入</span>
+                        <span>{{ admin.last_login.strftime('%Y-%m-%d %H:%M') if admin.last_login else '從未登入' }}</span>
+                    </div>
+                    <div class="admin-info-item d-flex justify-content-between py-2">
+                        <span class="text-muted"><i class="fas fa-fingerprint me-2"></i>用戶ID</span>
+                        <span>{{ admin.id }}</span>
+                    </div>
+                </div>
+
+                {% if admin.id != current_user.id %}
+                <div class="mt-4">
+                    <form action="{{ url_for('main.admin_remove_admin_role', user_id=admin.id) }}" method="post" onsubmit="return confirmRemoveAdmin('{{ admin.display_name or admin.username }}');">
+                        <button type="submit" class="admin-btn admin-btn-danger admin-btn-block">
+                            <i class="fas fa-user-slash me-2"></i>移除管理員權限
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 右側 - 編輯表單 -->
+    <div class="col-lg-8">
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h3 class="admin-card-title">
+                    <i class="admin-card-icon fas fa-user-edit"></i>
+                    編輯管理員資料
+                </h3>
+            </div>
+            <div class="admin-card-body">
+                <form action="{{ url_for('main.admin_update_admin', admin_id=admin.id) }}" method="post">
+                    <!-- 基本資訊 -->
+                    <div class="mb-4">
+                        <h5 class="mb-3 pb-2 border-bottom">基本資訊</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="display_name" class="form-label">顯示名稱</label>
+                                <input type="text" class="form-control" id="display_name" name="display_name" value="{{ admin.display_name or '' }}" placeholder="顯示名稱">
+                                <div class="form-text">如果留空，將顯示用戶名稱</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">電子郵件</label>
+                                <input type="email" class="form-control" id="email" name="email" value="{{ admin.email or '' }}" placeholder="電子郵件">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 密碼區段 -->
+                    <div class="mb-4">
+                        <h5 class="mb-3 pb-2 border-bottom">更改密碼</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="new_password" class="form-label">新密碼</label>
+                                <input type="password" class="form-control" id="new_password" name="new_password" placeholder="輸入新密碼">
+                                <div class="form-text">若不需修改密碼，請留空</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="confirm_password" class="form-label">確認新密碼</label>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="再次輸入新密碼">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 提交按鈕 -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('main.admin_manage_admins') }}" class="admin-btn admin-btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>返回管理員列表
+                        </a>
+                        <button type="submit" class="admin-btn admin-btn-primary">
+                            <i class="fas fa-save me-2"></i>儲存更改
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    function confirmRemoveAdmin(displayNameOrUsername) {
+        return confirm(`您確定要移除 "${displayNameOrUsername}" 的管理員權限嗎？`);
+    }
+</script>
+{% endblock %}

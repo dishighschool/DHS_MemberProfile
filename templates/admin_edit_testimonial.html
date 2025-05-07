@@ -1,0 +1,127 @@
+{% extends "admin_base.html" %}
+
+{% block title %}編輯成員留言{% endblock %}
+{% block header_title %}編輯成員留言{% endblock %}
+
+{% block page_icon_class %}fas fa-edit{% endblock %}
+{% block page_title %}編輯成員留言{% endblock %}
+{% block page_subtitle %}修改成員留言內容及顯示設定{% endblock %}
+
+{% block content %}
+<!-- 成員資訊卡片 -->
+<div class="admin-card mb-4">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-user"></i>
+            成員資訊
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        <div class="d-flex align-items-center">
+            {% if user.avatar %}
+            <img src="{{ user.avatar }}" alt="{{ user.display_name or user.username }}" class="rounded-circle" width="60" height="60" style="object-fit: cover;">
+            {% else %}
+            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                <i class="fas fa-user fa-2x text-white"></i>
+            </div>
+            {% endif %}
+            
+            <div class="ms-3">
+                <h4 class="mb-1">{{ user.display_name or user.username }}</h4>
+                <p class="text-muted mb-0">{{ user.profile.title if user.profile and user.profile.title else '無職銜' }}</p>
+            </div>
+            
+            <div class="ms-auto">
+                <a href="{{ url_for('main.public_profile', username=user.username) }}" target="_blank" class="admin-btn admin-btn-sm admin-btn-outline">
+                    <i class="fas fa-external-link-alt me-1"></i> 查看公開頁面
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 編輯留言表單卡片 -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-comment-alt"></i>
+            編輯留言內容
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        <form method="POST" action="{{ url_for('main.admin_edit_testimonial', testimonial_id=testimonial.id) }}">
+            <div class="mb-3">
+                <label for="message" class="form-label fw-bold">留言內容</label>
+                <textarea class="form-control" id="message" name="message" rows="5" required>{{ testimonial.message }}</textarea>
+                <div class="d-flex justify-content-end mt-1">
+                    <span class="text-muted"><span id="charCount">0</span>/200</span>
+                </div>
+            </div>
+            
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="is_visible" name="is_visible" {% if testimonial.is_visible %}checked{% endif %}>
+                <label class="form-check-label" for="is_visible">在公開頁面顯示此留言</label>
+            </div>
+            
+            <div class="mb-3 mt-4">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> 成員留言將顯示在該成員的公開頁面中，最多 200 個字。
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('main.admin_manage_testimonials') }}" class="admin-btn admin-btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> 返回列表
+                </a>
+                <button type="submit" class="admin-btn admin-btn-primary">
+                    <i class="fas fa-save me-1"></i> 保存變更
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const messageTextarea = document.getElementById('message');
+    const charCount = document.getElementById('charCount');
+    
+    // 字數計數功能
+    function updateCharCount() {
+        const count = messageTextarea.value.length;
+        charCount.textContent = count;
+        
+        // 如果超出限制，變紅色
+        if (count > 200) {
+            charCount.classList.add('text-danger');
+            charCount.classList.add('fw-bold');
+        } else {
+            charCount.classList.remove('text-danger');
+            charCount.classList.remove('fw-bold');
+        }
+    }
+    
+    // 初始化字數計數
+    updateCharCount();
+    
+    // 輸入時更新字數計數
+    messageTextarea.addEventListener('input', updateCharCount);
+    
+    // 表單提交處理
+    const testimonialForm = document.querySelector('form');
+    testimonialForm.addEventListener('submit', function(e) {
+        const count = messageTextarea.value.length;
+        
+        // 如果超出字數限制，阻止提交
+        if (count > 200) {
+            e.preventDefault();
+            alert('留言內容超過200字限制，請縮短後再提交');
+            messageTextarea.focus();
+        }
+    });
+});
+</script>
+{% endblock %}

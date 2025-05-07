@@ -1,0 +1,281 @@
+{% extends "public_base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/public-profile.css') }}">
+<style>
+    /* 自訂主色調樣式 */
+    :root {
+        /* 定義自訂主色調，如果有設置則使用，否則使用預設值 */
+        --primary-color: {{ profile.main_color or '#7983d4' }};
+        --primary-light: {{ profile.main_color or '#9aa3ee' }};
+        --primary-dark: {{ profile.main_color or '#5357be' }};
+        
+        /* 根據主色調自動生成其他必要的顏色變數 */
+        --glow-primary: 0 0 15px {{ profile.main_color or 'rgba(121, 131, 212, 0.5)' }};
+    }
+    
+    /* 為預覽版添加的樣式 */
+    .profile-container {
+        padding-top: 2rem;
+    }
+    
+    /* 預覽模式提示標籤 */
+    .preview-badge {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        z-index: 100;
+    }
+    
+    /* 移除原本網站的header和footer，只保留內容部分 */
+    .simple-header, .public-footer {
+        display: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block body_class %}gradient-bg gradient-{{ profile.background_gradient or 'default' }}{% endblock %}
+
+{% set use_gradient_overlay = true %}
+
+{% block content %}
+<!-- 預覽標記 -->
+{% if is_preview %}
+    <div class="preview-badge">預覽模式</div>
+{% endif %}
+
+<div class="profile-container">
+    <!-- 個人頭像和基本資訊 -->
+    <div class="profile-header">
+        <img src="{{ user.avatar or url_for('static', filename='images/default-avatar.png') }}" alt="{{ user.username }}" class="profile-avatar">
+        <div class="profile-info">
+            <h1>{{ user.display_name or user.username }}</h1>
+            {% if profile and profile.title %}
+                <p class="profile-title">{{ profile.title }}</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="profile-content">
+        <!-- 關於我 -->
+        <div class="profile-section">
+            <h2><i class="fas fa-user"></i> 關於我</h2>
+            {% if profile and profile.bio %}
+                <p class="profile-bio">{{ profile.bio }}</p>
+            {% else %}
+                <p class="profile-bio">此用戶尚未添加個人簡介。</p>
+            {% endif %}
+        </div>
+        
+        <!-- 興趣與專長 -->
+        {% if profile and profile.interests %}
+            <div class="profile-section">
+                <h2><i class="fas fa-star"></i> 興趣與專長</h2>
+                <ul class="profile-interests">
+                    {% for interest in profile.interests.split(',') %}
+                        <li>{{ interest.strip() }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        
+        <!-- 社交媒體連結 -->
+        {% if social_links and social_links|length > 0 %}
+            <div class="profile-section">
+                <h2><i class="fas fa-link"></i> 社交媒體</h2>
+                <div class="social-grid">
+                    {% for link in social_links %}
+                        {% set is_url = link.url.startswith('http://') or link.url.startswith('https://') %}
+                        {% if is_url %}
+                            <a href="javascript:void(0)" class="social-card" onclick="event.preventDefault();" title="在預覽模式中點擊無效">
+                                <div class="social-icon">
+                                    <i class="{{ link.icon_class }}"></i>
+                                </div>
+                                <div class="social-info">
+                                    <h4>{{ link.title }}</h4>
+                                    <small>{{ link.url|truncate(30) }}</small>
+                                </div>
+                            </a>
+                        {% else %}
+                            <div class="social-card copyable" title="在預覽模式中點擊無效">
+                                <div class="social-icon">
+                                    <i class="{{ link.icon_class }}"></i>
+                                </div>
+                                <div class="social-info">
+                                    <h4>{{ link.title }}</h4>
+                                    <small>{{ link.url|truncate(30) }}</small>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+window.addEventListener('message', function(event) {
+    // 確保消息來源安全，同源策略
+    if (event.origin !== window.location.origin) return;
+    
+    // 獲取預覽資料
+    const previewData = event.data;
+    if (!previewData) return;
+    
+    console.log("預覽頁面收到資料更新:", previewData); // 調試信息
+    
+    // 更新個人資訊
+    const displayNameElement = document.querySelector('.profile-info h1');
+    if (displayNameElement) {
+        displayNameElement.textContent = previewData.displayName || previewData.username;
+    }
+    
+    // 更新個人標題
+    const titleElement = document.querySelector('.profile-title');
+    if (titleElement && previewData.profileTitle) {
+        titleElement.textContent = previewData.profileTitle;
+        titleElement.style.display = '';
+    } else if (titleElement) {
+        titleElement.style.display = 'none';
+    }
+    
+    // 更新個人簡介
+    const bioElement = document.querySelector('.profile-bio');
+    if (bioElement) {
+        bioElement.textContent = previewData.profileBio || '此用戶尚未添加個人簡介。';
+    }
+    
+    // 更新興趣與專長
+    const interestsParent = document.querySelector('.profile-section:has(.profile-interests)');
+    let interestsSection = document.querySelector('.profile-interests');
+    
+    if (previewData.profileInterests && previewData.profileInterests.trim()) {
+        const interests = previewData.profileInterests.split(',');
+        const interestsHTML = interests.map(interest => 
+            `<li>${interest.trim()}</li>`).join('');
+        
+        // 如果找不到興趣區塊，但有興趣資料，則新建區塊
+        if (!interestsParent) {
+            const newInterestsSection = document.createElement('div');
+            newInterestsSection.className = 'profile-section';
+            newInterestsSection.innerHTML = `
+                <h2><i class="fas fa-star"></i> 興趣與專長</h2>
+                <ul class="profile-interests">
+                    ${interestsHTML}
+                </ul>
+            `;
+            // 插入到個人簡介後面
+            const bioSection = document.querySelector('.profile-section');
+            if (bioSection) {
+                bioSection.insertAdjacentElement('afterend', newInterestsSection);
+            } else {
+                document.querySelector('.profile-content').appendChild(newInterestsSection);
+            }
+        } 
+        // 如果已有興趣區塊，更新其內容
+        else if (interestsSection) {
+            interestsSection.innerHTML = interestsHTML;
+            interestsParent.style.display = '';
+        }
+    } 
+    // 如果沒有興趣資料但有興趣區塊，隱藏區塊
+    else if (interestsParent) {
+        interestsParent.style.display = 'none';
+    }
+    
+    // 更新社交連結
+    const socialGrid = document.querySelector('.social-grid');
+    const socialParent = socialGrid ? socialGrid.closest('.profile-section') : null;
+    
+    if (previewData.socialLinks && previewData.socialLinks.length > 0) {
+        // 如果有社交連結但沒有顯示區塊，則創建一個
+        if (!socialParent) {
+            const newSocialSection = document.createElement('div');
+            newSocialSection.className = 'profile-section';
+            newSocialSection.innerHTML = `
+                <h2><i class="fas fa-link"></i> 社交媒體</h2>
+                <div class="social-grid"></div>
+            `;
+            document.querySelector('.profile-content').appendChild(newSocialSection);
+            
+            // 重新獲取 socialGrid
+            const newSocialGrid = document.querySelector('.social-grid');
+            updateSocialLinks(newSocialGrid, previewData.socialLinks);
+        } else {
+            // 如果已有社交連結區塊，更新內容並顯示
+            updateSocialLinks(socialGrid, previewData.socialLinks);
+            socialParent.style.display = '';
+        }
+    } else if (socialParent) {
+        // 如果沒有社交連結但有區塊，則隱藏區塊
+        socialParent.style.display = 'none';
+    }
+    
+    // 更新背景漸層 - 使用新的漸層管理系統
+    const gradientId = previewData.background_gradient || 'default';
+    
+    // 移除所有原有漸層類
+    document.body.classList.forEach(cls => {
+        if (cls.startsWith('gradient-') && cls !== 'gradient-bg') {
+            document.body.classList.remove(cls);
+        }
+    });
+    
+    // 添加新的漸層類
+    document.body.classList.add(`gradient-${gradientId}`);
+    
+    console.log("已更新背景漸層:", gradientId); // 調試信息
+    
+    // 更新主色調
+    document.documentElement.style.setProperty('--primary-color', previewData.main_color || '#7983d4');
+    document.documentElement.style.setProperty('--primary-light', previewData.main_color || '#9aa3ee');
+    document.documentElement.style.setProperty('--primary-dark', previewData.main_color || '#5357be');
+    document.documentElement.style.setProperty('--glow-primary', `0 0 15px ${previewData.main_color || 'rgba(121, 131, 212, 0.5)'}`);
+    
+    console.log("已更新主色調:", previewData.main_color); // 調試信息
+});
+
+// 輔助函數：更新社交連結
+function updateSocialLinks(container, links) {
+    if (!container) return;
+    
+    container.innerHTML = links.map(link => {
+        const isUrl = link.url.startsWith('http://') || link.url.startsWith('https://');
+        if (isUrl) {
+            return `
+                <a href="javascript:void(0)" class="social-card" onclick="event.preventDefault();" title="在預覽模式中點擊無效">
+                    <div class="social-icon">
+                        <i class="${link.icon_class}"></i>
+                    </div>
+                    <div class="social-info">
+                        <h4>${link.title}</h4>
+                        <small>${link.url.length > 30 ? link.url.substring(0, 27) + '...' : link.url}</small>
+                    </div>
+                </a>
+            `;
+        } else {
+            return `
+                <div class="social-card copyable" title="在預覽模式中點擊無效">
+                    <div class="social-icon">
+                        <i class="${link.icon_class}"></i>
+                    </div>
+                    <div class="social-info">
+                        <h4>${link.title}</h4>
+                        <small>${link.url.length > 30 ? link.url.substring(0, 27) + '...' : link.url}</small>
+                    </div>
+                </div>
+            `;
+        }
+    }).join('');
+}
+</script>
+{% endblock %}

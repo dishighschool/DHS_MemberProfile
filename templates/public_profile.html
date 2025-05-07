@@ -1,0 +1,200 @@
+{% extends "public_base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/public-profile.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/gradients.css') }}">
+<style>
+    /* 自訂主色調樣式 - 優先設定在CSS最頂部 */
+    :root {
+        /* 定義自訂主色調，如果有設置則使用，否則使用預設值 */
+        --primary-color: {{ profile.main_color or '#7983d4' }};
+        --primary-light: {{ profile.main_color or '#9aa3ee' }};
+        --primary-dark: {{ profile.main_color or '#5357be' }};
+        
+        /* 根據主色調自動生成其他必要的顏色變數 */
+        --glow-primary: 0 0 15px {{ profile.main_color or 'rgba(121, 131, 212, 0.5)' }};
+    }
+    
+    /* 修正頭像位置問題 */
+    .profile-header {
+        position: relative;
+        z-index: 2;
+    }
+    
+    .profile-content {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 1.5rem;
+        border: 3px solid var(--primary-light);
+        box-shadow: var(--glow-primary);
+    }
+    
+    .copyable-text {
+        cursor: pointer;
+        position: relative; /* Needed for tooltip positioning */
+    }
+    
+    .social-card.copyable { /* Style for non-link cards */
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block body_class %}gradient-bg gradient-{{ profile.background_gradient or 'default' }}{% endblock %}
+
+{% set use_gradient_overlay = true %}
+
+{% block content %}
+<div class="profile-container">
+    <!-- 個人頭像和基本資訊 -->
+    <div class="profile-header">
+        <img src="{{ user.avatar or url_for('static', filename='images/default-avatar.png') }}" alt="{{ user.username }}" class="profile-avatar">
+        <div class="profile-info">
+            <!-- Use display_name if available, otherwise username -->
+            <h1>{{ user.display_name or user.username }}</h1>
+            {% if profile and profile.title %}
+                <p class="profile-title">{{ profile.title }}</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="profile-content">
+        <!-- 關於我 -->
+        <div class="profile-section">
+            <h2><i class="fas fa-user"></i> 關於我</h2>
+            {% if profile and profile.bio %}
+                <p class="profile-bio">{{ profile.bio }}</p>
+            {% else %}
+                <p class="profile-bio">此用戶尚未添加個人簡介。</p>
+            {% endif %}
+        </div>
+        
+        <!-- 興趣與專長 -->
+        {% if profile and profile.interests %}
+            <div class="profile-section">
+                <h2><i class="fas fa-star"></i> 興趣與專長</h2>
+                <ul class="profile-interests">
+                    {% for interest in profile.interests.split(',') %}
+                        <li>{{ interest.strip() }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        
+        <!-- 社交媒體連結 - 只有在有社交連結時才顯示 -->
+        {% if social_links and social_links|length > 0 %}
+            <div class="profile-section">
+                <h2><i class="fas fa-link"></i> 社交媒體</h2>
+                <div class="social-grid">
+                    {% for link in social_links %}
+                        {% set is_url = link.url.startswith('http://') or link.url.startswith('https://') %}
+                        {% if is_url %}
+                            <a href="{{ link.url }}" class="social-card" target="_blank" rel="noopener noreferrer">
+                                <div class="social-icon">
+                                    <i class="{{ link.icon_class }}"></i>
+                                </div>
+                                <div class="social-info">
+                                    <h4>{{ link.title }}</h4>
+                                    <small>{{ link.url|truncate(30) }}</small>
+                                </div>
+                            </a>
+                        {% else %}
+                            <div class="social-card copyable" data-copy-text="{{ link.url }}">
+                                <div class="social-icon">
+                                    <i class="{{ link.icon_class }}"></i>
+                                </div>
+                                <div class="social-info">
+                                    <h4>{{ link.title }}</h4>
+                                    <small class="original-text">{{ link.url|truncate(30) }}</small> 
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    
+    <!-- 底部操作按鈕 -->
+    <div class="profile-actions">
+        {% if current_user.is_authenticated and current_user.id == user.id %}
+            <a href="{{ url_for('main.dashboard') }}" class="action-btn edit-btn">
+                <i class="fas fa-edit"></i> 編輯個人資料
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const copyableElements = document.querySelectorAll('.copyable[data-copy-text]');
+
+    copyableElements.forEach(el => {
+        const infoElement = el.querySelector('.social-info small.original-text'); // Target the small tag
+        if (!infoElement) return; // Skip if the target element isn't found
+
+        const originalText = infoElement.textContent; // Store the original text
+        let isCopied = false; // Flag to prevent rapid re-triggering of revert
+        let revertTimeout = null; // Store timeout ID
+
+        el.addEventListener('click', function() {
+            // Clear any existing revert timeout
+            if (revertTimeout) {
+                clearTimeout(revertTimeout);
+                revertTimeout = null;
+            }
+            // If already showing copied message, reset immediately before copying again
+            if (isCopied) {
+                infoElement.textContent = originalText;
+                infoElement.classList.remove('copied-success');
+                isCopied = false;
+            }
+
+            const textToCopy = this.getAttribute('data-copy-text');
+            if (!textToCopy) return;
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                // Success: Add class and change text
+                infoElement.innerHTML = '<i class="fas fa-check me-1"></i>已複製!';
+                infoElement.classList.add('copied-success'); // Add the class for styling
+                isCopied = true;
+
+                // Revert text after a delay
+                revertTimeout = setTimeout(() => {
+                    infoElement.textContent = originalText;
+                    infoElement.classList.remove('copied-success'); // Remove the class
+                    isCopied = false;
+                    revertTimeout = null;
+                }, 1500); // Revert after 1.5 seconds
+
+            }).catch(err => {
+                console.error('無法複製文字: ', err);
+                // Optional: Show an error message briefly
+                const currentText = infoElement.textContent; // Store current text before showing error
+                infoElement.textContent = '複製失敗!';
+                // No need to add copied-success class on error
+                isCopied = true; // Prevent immediate re-click
+
+                revertTimeout = setTimeout(() => {
+                    infoElement.textContent = originalText;
+                    // Ensure class is removed if it was somehow added
+                    infoElement.classList.remove('copied-success'); 
+                    isCopied = false;
+                    revertTimeout = null;
+                }, 1500);
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

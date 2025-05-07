@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    /* 基本樣式 */
+    .dashboard-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .card {
+        border: none;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #eaecef;
+        padding: 15px 20px;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    textarea {
+        min-height: 120px;
+        resize: vertical;
+    }
+    
+    /* 按鈕樣式 */
+    .btn-primary {
+        background-color: #6c5ce7;
+        border-color: #6c5ce7;
+    }
+    
+    .btn-primary:hover {
+        background-color: #5649d1;
+        border-color: #5649d1;
+    }
+    
+    .btn-outline-primary {
+        color: #6c5ce7;
+        border-color: #6c5ce7;
+    }
+    
+    .btn-outline-primary:hover {
+        background-color: #6c5ce7;
+        border-color: #6c5ce7;
+    }
+    
+    /* 狀態標記 */
+    .status-badge {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .status-visible {
+        background-color: #2ecc71;
+        color: #fff;
+    }
+    
+    .status-hidden {
+        background-color: #95a5a6;
+        color: #fff;
+    }
+    
+    /* 預覽區塊 */
+    .preview-container {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 20px;
+        position: relative;
+    }
+    
+    .preview-quote {
+        font-size: 1.1rem;
+        color: #333;
+        font-style: italic;
+        margin-bottom: 15px;
+        position: relative;
+        padding: 0 20px;
+    }
+    
+    .preview-quote::before,
+    .preview-quote::after {
+        content: '"';
+        font-size: 2rem;
+        color: #6c5ce7;
+        opacity: 0.3;
+        font-family: Georgia, serif;
+        position: absolute;
+    }
+    
+    .preview-quote::before {
+        left: -5px;
+        top: -10px;
+    }
+    
+    .preview-quote::after {
+        right: -5px;
+        bottom: -10px;
+    }
+    
+    .preview-user {
+        display: flex;
+        align-items: center;
+    }
+    
+    .preview-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 10px;
+        object-fit: cover;
+    }
+    
+    .preview-name {
+        font-weight: 600;
+        color: #6c5ce7;
+    }
+    
+    .preview-label {
+        position: absolute;
+        top: -10px;
+        left: 20px;
+        background-color: #6c5ce7;
+        color: white;
+        padding: 2px 10px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    /* --- 新增：浮動提示訊息樣式 --- */
+    .alert-floating {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1055;
+        min-width: 250px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.5s ease, visibility 0.5s ease, bottom 0.5s ease;
+    }
+    
+    .alert-floating.show {
+        opacity: 1;
+        visibility: visible;
+        bottom: 95px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 新增：浮動提示訊息 -->
+<div class="alert alert-success alert-floating" role="alert" id="successAlert" style="display: none;">
+    <i class="fas fa-check-circle me-2"></i> <span id="successAlertMessage"></span>
+</div>
+<div class="alert alert-danger alert-floating" role="alert" id="errorAlert" style="display: none;">
+    <i class="fas fa-exclamation-triangle me-2"></i> <span id="errorAlertMessage"></span>
+</div>
+
+<div class="container dashboard-container py-4">
+    <h1 class="mb-4"><i class="fas fa-quote-left me-2"></i>我的團隊留言</h1>
+    
+    <div class="mb-4">
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i> 返回儀表板
+        </a>
+    </div>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form id="testimonialForm" method="POST" action="{{ url_for('main.user_testimonial') }}">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h4 class="mb-0"><i class="fas fa-edit me-2"></i>編輯我的團隊留言</h4>
+                <div>
+                    {% if testimonial and testimonial.message %}
+                        {% if testimonial.is_visible %}
+                            <span class="status-badge status-visible">
+                                <i class="fas fa-eye"></i> 顯示中
+                            </span>
+                        {% else %}
+                            <span class="status-badge status-hidden">
+                                <i class="fas fa-eye-slash"></i> 未顯示
+                            </span>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> 
+                    您可以在此編輯您的團隊留言，它將在團隊首頁以輪播方式展示。
+                </div>
+                <div class="mb-3">
+                    <label for="message" class="form-label">我想說的話</label>
+                    <textarea class="form-control" id="message" name="message" rows="4" maxlength="200" placeholder="分享您對團隊的想法或心情...">{{ testimonial.message if testimonial else '' }}</textarea>
+                    <div class="d-flex justify-content-between mt-1">
+                        <div class="form-text">可輸入 200 字以內的留言</div>
+                        <div class="char-count text-muted"><span id="charCount">0</span>/200</div>
+                    </div>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="is_visible" name="is_visible" {% if testimonial and testimonial.is_visible %}checked{% endif %}>
+                    <label class="form-check-label" for="is_visible">
+                        在公開頁面顯示我的留言
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 預覽區塊 -->
+        {% if testimonial and testimonial.message %}
+        <div class="preview-container">
+            <span class="preview-label">預覽效果</span>
+            <div class="preview-quote">{{ testimonial.message }}</div>
+            <div class="preview-user">
+                {% if current_user.avatar %}
+                <img src="{{ current_user.avatar }}" alt="{{ current_user.display_name or current_user.username }}" class="preview-avatar">
+                {% else %}
+                <div class="preview-avatar d-flex align-items-center justify-content-center bg-secondary">
+                    <i class="fas fa-user text-white"></i>
+                </div>
+                {% endif %}
+                <span class="preview-name">{{ current_user.display_name or current_user.username }}</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="d-flex justify-content-end mt-4 gap-2">
+            <button type="reset" class="btn btn-outline-secondary">
+                <i class="fas fa-undo me-1"></i> 重設
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-1"></i> 儲存變更
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const messageTextarea = document.getElementById('message');
+    const charCount = document.getElementById('charCount');
+    
+    // 字數計數功能
+    function updateCharCount() {
+        const count = messageTextarea.value.length;
+        charCount.textContent = count;
+        
+        // 如果超出限制，變紅色
+        if (count > 200) {
+            charCount.classList.add('text-danger');
+            charCount.classList.add('fw-bold');
+        } else {
+            charCount.classList.remove('text-danger');
+            charCount.classList.remove('fw-bold');
+        }
+    }
+    
+    // 初始化字數計數
+    updateCharCount();
+    
+    // 輸入時更新字數計數
+    messageTextarea.addEventListener('input', updateCharCount);
+    
+    // 表單提交處理
+    const testimonialForm = document.getElementById('testimonialForm');
+    testimonialForm.addEventListener('submit', function(e) {
+        const count = messageTextarea.value.length;
+        
+        // 如果超出字數限制，阻止提交
+        if (count > 200) {
+            e.preventDefault();
+            document.getElementById('errorAlertMessage').textContent = '留言內容超過200字限制，請縮短後再提交';
+            const errorAlert = document.getElementById('errorAlert');
+            errorAlert.style.display = 'block';
+            setTimeout(() => errorAlert.classList.add('show'), 10);
+            
+            // 5秒後自動隱藏
+            setTimeout(() => {
+                errorAlert.classList.remove('show');
+                setTimeout(() => errorAlert.style.display = 'none', 500);
+            }, 5000);
+            
+            // 聚焦到文本區域
+            messageTextarea.focus();
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,787 @@
+{% extends "public_base.html" %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/gradients.css') }}">
+<style>
+    /* 基本設定 */
+    html, body, .main-container {
+        background-color: #000000 !important;
+    }
+    
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 15px;
+    }
+    
+    /* 頁面標題區 */
+    .page-header {
+        padding: 2rem 0;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .page-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 1rem;
+    }
+    
+    .page-subtitle {
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.7);
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    /* 搜尋區域 */
+    .search-container {
+        max-width: 500px;
+        margin: 0 auto 2rem;
+    }
+    
+    .search-input {
+        width: 100%;
+        padding: 0.75rem 1.5rem;
+        border-radius: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: #222;
+        color: white;
+        font-size: 1rem;
+    }
+    
+    .search-input:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(197, 140, 255, 0.3);
+        border-color: #C58CFF;
+    }
+    
+    /* 篩選按鈕 */
+    .filter-options {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 2rem;
+    }
+    
+    .filter-btn {
+        background-color: #222;
+        color: rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 2rem;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .filter-btn:hover, .filter-btn.active {
+        background-color: #C58CFF;
+        color: white;
+    }
+    
+    /* 標籤樣式 */
+    .member-tags {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 5px;
+        margin-bottom: 10px;
+    }
+    
+    .member-tag {
+        font-size: 0.75rem;
+        padding: 3px 8px;
+        border-radius: 12px;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        background-color: rgba(0,0,0,0.3);
+    }
+    
+    .member-tag i {
+        margin-right: 3px;
+        font-size: 0.7rem;
+    }
+    
+    /* 成員網格 */
+    .members-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+    
+    /* 完全重構成員卡片結構 */
+    .member-item {
+        display: flex;
+    }
+    
+    .member-card {
+        width: 100%;
+        background-color: transparent; /* 透明背景 */
+        border-radius: 12px;
+        overflow: hidden; /* 控制邊界內容 */
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+    
+    .member-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(197, 140, 255, 0.15);
+        border-color: #C58CFF;
+    }
+    
+    /* 頭部容器 - 簡化 */
+    .member-header {
+        height: 80px;
+        background-color: #1a1a1a;
+    }
+    
+    /* 預設的頭部背景 */
+    .member-header-default {
+        background: linear-gradient(45deg, #1a1a1a, #333);
+    }
+    
+    /* 頭像容器 - 重新定位 */
+    .member-avatar-wrapper {
+        position: absolute;
+        top: 40px; /* 頭部高度一半 */
+        left: 0;
+        width: 100%;
+        height: 80px;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        pointer-events: none; /* 防止干擾卡片點擊 */
+        z-index: 5;
+    }
+    
+    .member-avatar-container {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        border: 4px solid #1a1a1a;
+        overflow: hidden;
+        background-color: #333;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    }
+    
+    .member-avatar {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    /* 內容區域 */
+    .member-content {
+        padding: 50px 20px 20px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        background-color: #1a1a1a;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .member-name {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: white;
+        margin: 0 0 0.5rem;
+    }
+    
+    .member-title {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+    
+    .member-bio {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .member-footer {
+        margin-top: auto;
+        padding-top: 1rem;
+    }
+    
+    .btn-view-profile {
+        display: inline-block;
+        background-color: #C58CFF;
+        color: white !important; /* 確保文字顏色始終為白色 */
+        padding: 0.6rem 1.2rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        border: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .btn-view-profile:hover {
+        background-color: #D7ADFF;
+        color: #000 !important; /* 懸停時改為黑色文字增加對比度 */
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(215, 173, 255, 0.4);
+    }
+    
+    /* 空狀態 */
+    .no-members {
+        text-align: center;
+        padding: 3rem 0;
+        grid-column: 1 / -1;
+    }
+    
+    .no-members i {
+        font-size: 3rem;
+        color: rgba(255, 255, 255, 0.3);
+        margin-bottom: 1rem;
+    }
+    
+    .no-members h3 {
+        font-size: 1.5rem;
+        color: white;
+        margin-bottom: 0.5rem;
+    }
+    
+    .no-members p {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* 通知樣式 */
+    .alert {
+        background-color: rgba(0, 0, 0, 0.5);
+        border-left: 4px solid #C58CFF;
+        color: white;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 4px;
+    }
+
+    /* 新增: 成員留言輪播區塊樣式 */
+    .testimonial-section {
+        background-color: rgba(0, 0, 0, 0.3);
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 3rem;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(197, 140, 255, 0.2);
+    }
+
+    .testimonial-header {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .testimonial-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 0.5rem;
+    }
+
+    .testimonial-subtitle {
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .testimonial-carousel {
+        position: relative;
+        height: 200px;
+    }
+
+    .testimonial-item {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 1s ease, visibility 1s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 0 2rem;
+    }
+
+    .testimonial-item.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .testimonial-quote {
+        font-size: 1.2rem;
+        color: white;
+        font-style: italic;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+        position: relative;
+    }
+
+    .testimonial-quote::before,
+    .testimonial-quote::after {
+        content: '"';
+        color: rgba(197, 140, 255, 0.5);
+        font-size: 2rem;
+        font-family: Georgia, serif;
+    }
+
+    .testimonial-quote::before {
+        position: absolute;
+        left: -20px;
+        top: -10px;
+    }
+
+    .testimonial-quote::after {
+        position: absolute;
+        margin-left: 5px;
+    }
+
+    .testimonial-user {
+        display: flex;
+        align-items: center;
+    }
+
+    .testimonial-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 10px;
+        object-fit: cover;
+        border: 2px solid #C58CFF;
+    }
+
+    .testimonial-user-name {
+        color: #C58CFF;
+        font-weight: 600;
+    }
+
+    .testimonial-controls {
+        display: flex;
+        justify-content: center;
+        margin-top: 1.5rem;
+    }
+
+    .testimonial-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.3);
+        margin: 0 5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .testimonial-dot.active {
+        background-color: #C58CFF;
+        transform: scale(1.3);
+    }
+
+    /* 響應式設計 */
+    @media (max-width: 1200px) {
+        .members-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+    
+    @media (max-width: 992px) {
+        .members-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .page-title {
+            font-size: 2rem;
+        }
+        
+        .page-subtitle {
+            font-size: 1rem;
+        }
+        
+        .filter-options {
+            flex-direction: row;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+            margin-left: -15px;
+            margin-right: -15px;
+            padding-left: 15px;
+            padding-right: 15px;
+            justify-content: flex-start;
+        }
+
+        .testimonial-quote {
+            font-size: 1rem;
+        }
+
+        .testimonial-carousel {
+            height: 240px; /* 手機上增加高度 */
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .members-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .member-card {
+            max-width: 350px;
+            margin: 0 auto;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- 頁面標題 -->
+    <div class="page-header">
+        <h1 class="page-title">團隊成員</h1>
+        <p class="page-subtitle">了解我們的所有團隊成員</p>
+    </div>
+
+    <!-- 成員留言輪播區塊 -->
+    {% if testimonials and testimonials|length > 0 %}
+    <div class="testimonial-section">
+        <div class="testimonial-header">
+            <h2 class="testimonial-title">成員心聲</h2>
+            <p class="testimonial-subtitle">聽聽我們的成員怎麼說</p>
+        </div>
+        <div class="testimonial-carousel" id="testimonialCarousel">
+            {% for testimonial_tuple in testimonials %}
+            <div class="testimonial-item {% if loop.index == 1 %}active{% endif %}" data-index="{{ loop.index0 }}">
+                <p class="testimonial-quote">{{ testimonial_tuple[0].message }}</p>
+                <div class="testimonial-user">
+                    {% if testimonial_tuple[1].avatar %}
+                    <img src="{{ testimonial_tuple[1].avatar }}" alt="{{ testimonial_tuple[1].display_name or testimonial_tuple[1].username }}" class="testimonial-avatar">
+                    {% else %}
+                    <div class="testimonial-avatar d-flex align-items-center justify-content-center" style="background-color: #333;">
+                        <i class="fas fa-user" style="color: rgba(255, 255, 255, 0.5);"></i>
+                    </div>
+                    {% endif %}
+                    <span class="testimonial-user-name">{{ testimonial_tuple[1].display_name or testimonial_tuple[1].username }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="testimonial-controls" id="testimonialControls">
+            {% for testimonial_tuple in testimonials %}
+            <div class="testimonial-dot {% if loop.index == 1 %}active{% endif %}" data-index="{{ loop.index0 }}"></div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- 搜尋 -->
+    <div class="search-container">
+        <input type="text" class="search-input" id="member-search" placeholder="搜尋成員名稱或標籤...">
+    </div>
+    
+    <!-- 篩選按鈕 -->
+    <div class="filter-options" id="filter-options">
+        <button class="filter-btn active" data-filter="all">全部成員</button>
+        {% if tags %}
+            {% for tag in tags %}
+                <button class="filter-btn" data-filter="{{ tag.name }}" data-tag-id="{{ tag.id }}" style="{% if tag.color %}border-color: {{ tag.color }}{% endif %}">
+                    {% if tag.icon_class %}<i class="{{ tag.icon_class }}"></i>{% endif %} {{ tag.display_name }}
+                </button>
+            {% endfor %}
+        {% endif %}
+    </div>
+    
+    <!-- 篩選結果提示 -->
+    <div id="filter-results-container"></div>
+    
+    <!-- 成員列表 -->
+    <div class="members-grid" id="members-grid">
+        {% if users %}
+            {% for user in users %}
+                <div class="member-item" 
+                     data-name="{{ user.display_name or user.username }}" 
+                     data-title="{{ user.profile.title or '' }}" 
+                     data-bio="{{ user.profile.bio or '' }}"
+                     {% if user.tags %}
+                     data-tags="{{ user.tags|map(attribute='name')|join(',') }}"
+                     data-tag-ids="{{ user.tags|map(attribute='id')|join(',') }}"
+                     {% endif %}>
+                    <div class="member-card">
+                        <!-- 上方漸層背景 -->
+                        {% set gradient = user.profile.background_gradient or 'default' %}
+                        <div class="member-header {% if not gradient %}member-header-default{% else %}gradient-{{ gradient }}{% endif %}">
+                        </div>
+                        
+                        <!-- 頭像容器使用絕對定位的包裝 -->
+                        <div class="member-avatar-wrapper">
+                            <div class="member-avatar-container">
+                                {% if user.avatar %}
+                                    <img src="{{ user.avatar }}" alt="{{ user.display_name or user.username }}" class="member-avatar">
+                                {% else %}
+                                    <i class="fas fa-user fa-2x" style="color: rgba(255, 255, 255, 0.5);"></i>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- 內容區域 -->
+                        <div class="member-content">
+                            <h3 class="member-name">{{ user.display_name or user.username }}</h3>
+                            
+                            {% if user.profile and user.profile.title %}
+                                <div class="member-title">{{ user.profile.title }}</div>
+                            {% endif %}
+                            
+                            <!-- 標籤區域 -->
+                            {% if user.tags|length > 0 %}
+                                <div class="member-tags">
+                                    {% for tag in user.tags %}
+                                        <span class="member-tag" style="background-color: {{ tag.color }};">
+                                            {% if tag.icon_class %}<i class="{{ tag.icon_class }}"></i>{% endif %}
+                                            {{ tag.display_name }}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            
+                            {% if user.profile and user.profile.bio %}
+                                <div class="member-bio">{{ user.profile.bio }}</div>
+                            {% endif %}
+                            
+                            <div class="member-footer">
+                                <a href="{{ url_for('main.public_profile', username=user.username) }}" class="btn-view-profile">
+                                    <i class="fas fa-user-circle me-2"></i>查看個人頁面
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-members">
+                <i class="fas fa-user-slash"></i>
+                <h3>暫無成員資料</h3>
+                <p>目前還沒有任何成員加入團隊，請稍後再查看。</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 顯示成員總數的調試訊息
+    const memberItems = document.querySelectorAll('.member-item');
+    console.log('成員總數:', memberItems.length);
+    
+    // 確保所有成員卡片在頁面載入時都可見
+    memberItems.forEach(item => {
+        item.style.display = '';
+    });
+    
+    // 搜尋功能
+    const searchInput = document.getElementById('member-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            memberItems.forEach(item => {
+                const name = item.getAttribute('data-name').toLowerCase();
+                const title = item.getAttribute('data-title').toLowerCase();
+                const bio = item.getAttribute('data-bio').toLowerCase();
+                const tags = (item.getAttribute('data-tags') || '').toLowerCase();
+                
+                if (searchTerm === '' || 
+                    name.includes(searchTerm) || 
+                    title.includes(searchTerm) || 
+                    bio.includes(searchTerm) || 
+                    tags.includes(searchTerm)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            updateEmptyState();
+        });
+    }
+    
+    // 篩選按鈕功能
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const filterResultsContainer = document.getElementById('filter-results-container');
+    
+    if (filterBtns.length > 0) {
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // 更新活動按鈕狀態
+                filterBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const filter = this.getAttribute('data-filter');
+                const tagId = this.getAttribute('data-tag-id');
+                console.log('篩選條件:', filter, '標籤ID:', tagId);
+                
+                let matchCount = 0;
+                memberItems.forEach(item => {
+                    if (filter === 'all') {
+                        item.style.display = '';
+                        matchCount++;
+                    } else if (tagId) {
+                        // 使用標籤ID精確匹配
+                        const tagIds = ',' + (item.getAttribute('data-tag-ids') || '') + ',';
+                        if (tagIds.includes(',' + tagId + ',')) {
+                            item.style.display = '';
+                            matchCount++;
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    } else {
+                        const title = item.getAttribute('data-title').toLowerCase();
+                        const bio = item.getAttribute('data-bio').toLowerCase();
+                        const tags = ',' + (item.getAttribute('data-tags') || '') + ',';
+                        
+                        if (tags.includes(',' + filter + ',')) {
+                            item.style.display = '';
+                            matchCount++;
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    }
+                });
+                
+                // 更新篩選結果提示
+                updateFilterResults(filter, matchCount, this.textContent.trim());
+                updateEmptyState();
+            });
+        });
+    }
+    
+    // 更新篩選結果提示
+    function updateFilterResults(filter, count, displayName) {
+        // 清空目前的提示
+        filterResultsContainer.innerHTML = '';
+        
+        // 如果是"全部"篩選，或者有符合條件的項目，就不顯示提示
+        if (filter === 'all' || count > 0) return;
+        
+        // 添加提示訊息
+        const alert = document.createElement('div');
+        alert.className = 'alert';
+        alert.innerHTML = `
+            <i class="fas fa-info-circle me-2"></i>
+            找不到符合「${displayName}」標籤的成員。
+        `;
+        
+        filterResultsContainer.appendChild(alert);
+    }
+    
+    // 更新空狀態
+    function updateEmptyState() {
+        const membersGrid = document.getElementById('members-grid');
+        let visibleItems = 0;
+        
+        memberItems.forEach(item => {
+            if (item.style.display !== 'none') {
+                visibleItems++;
+            }
+        });
+        
+        // 如果沒有可見項目，顯示沒有結果的提示
+        if (visibleItems === 0 && memberItems.length > 0) {
+            // 檢查是否已有空狀態提示
+            let noResults = document.querySelector('.no-results');
+            if (!noResults) {
+                noResults = document.createElement('div');
+                noResults.className = 'no-members no-results';
+                noResults.innerHTML = `
+                    <i class="fas fa-search"></i>
+                    <h3>找不到符合條件的成員</h3>
+                    <p>請嘗試使用不同的搜尋詞或篩選條件</p>
+                `;
+                
+                membersGrid.appendChild(noResults);
+            }
+        } else {
+            // 移除任何存在的空狀態提示
+            const noResults = document.querySelector('.no-results');
+            if (noResults) {
+                noResults.remove();
+            }
+        }
+    }
+
+    // 新增: 成員留言輪播功能
+    const testimonialCarousel = document.getElementById('testimonialCarousel');
+    if (testimonialCarousel) {
+        const testimonialItems = testimonialCarousel.querySelectorAll('.testimonial-item');
+        const testimonialDots = document.querySelectorAll('.testimonial-dot');
+        let currentIndex = 0;
+        let intervalId = null;
+
+        // 顯示指定索引的留言
+        function showTestimonial(index) {
+            testimonialItems.forEach(item => {
+                item.classList.remove('active');
+            });
+            testimonialDots.forEach(dot => {
+                dot.classList.remove('active');
+            });
+
+            testimonialItems[index].classList.add('active');
+            testimonialDots[index].classList.add('active');
+            currentIndex = index;
+        }
+
+        // 顯示下一個留言
+        function showNextTestimonial() {
+            const nextIndex = (currentIndex + 1) % testimonialItems.length;
+            showTestimonial(nextIndex);
+        }
+
+        // 綁定點擊事件到控制點
+        testimonialDots.forEach(dot => {
+            dot.addEventListener('click', function() {
+                const index = parseInt(this.getAttribute('data-index'));
+                showTestimonial(index);
+                resetCarouselTimer(); // 重設計時器
+            });
+        });
+
+        // 設置自動輪播
+        function startCarousel() {
+            intervalId = setInterval(showNextTestimonial, 6000); // 每6秒切換一次
+        }
+
+        function resetCarouselTimer() {
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+            startCarousel();
+        }
+
+        // 啟動自動輪播
+        if (testimonialItems.length > 0) {
+            startCarousel();
+        }
+    }
+});
+</script>
+{% endblock %}

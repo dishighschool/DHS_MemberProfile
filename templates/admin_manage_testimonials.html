@@ -1,0 +1,127 @@
+{% extends "admin_base.html" %}
+
+{% block title %}成員留言管理{% endblock %}
+{% block header_title %}成員留言管理{% endblock %}
+
+{% block page_icon_class %}fas fa-quote-left{% endblock %}
+{% block page_title %}成員留言管理{% endblock %}
+{% block page_subtitle %}查看、編輯及管理成員提交的留言{% endblock %}
+
+{% block content %}
+<!-- 頁面說明 -->
+<div class="admin-card mb-4">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-info-circle"></i>
+            說明
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        <p class="mb-0">在此頁面您可以管理成員提交的留言，進行查看、編輯及刪除等操作。這些留言將顯示在成員的公開頁面上。</p>
+    </div>
+</div>
+
+<!-- 留言列表卡片 -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-list"></i>
+            成員留言列表
+            {% if testimonials %}<span class="badge bg-primary ms-2">{{ testimonials|length }}</span>{% endif %}
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        {% if testimonials %}
+        <div class="table-responsive">
+            <table class="admin-table w-100">
+                <thead>
+                    <tr>
+                        <th width="5%">頭像</th>
+                        <th width="15%">成員</th>
+                        <th width="40%">留言內容</th>
+                        <th width="15%">最後更新</th>
+                        <th width="10%">狀態</th>
+                        <th width="15%">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for testimonial, user in testimonials %}
+                    <tr>
+                        <td>
+                            {% if user.avatar %}
+                            <img src="{{ user.avatar }}" alt="{{ user.display_name or user.username }}" class="rounded-circle" width="40" height="40" style="object-fit: cover;">
+                            {% else %}
+                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                <i class="fas fa-user text-white"></i>
+                            </div>
+                            {% endif %}
+                        </td>
+                        <td><a href="{{ url_for('main.public_profile', username=user.username) }}" target="_blank" class="text-decoration-none">{{ user.display_name or user.username }}</a></td>
+                        <td>
+                            <div style="max-width: 100%; overflow: hidden; text-overflow: ellipsis;">
+                                {{ testimonial.message|truncate(100) }}
+                            </div>
+                        </td>
+                        <td>{{ testimonial.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {% if testimonial.is_visible %}
+                            <span class="admin-tag admin-tag-success"><i class="fas fa-eye me-1"></i>已顯示</span>
+                            {% else %}
+                            <span class="admin-tag admin-tag-warning"><i class="fas fa-eye-slash me-1"></i>已隱藏</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{{ url_for('main.admin_edit_testimonial', testimonial_id=testimonial.id) }}" class="admin-btn admin-btn-sm admin-btn-outline" title="編輯留言">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                
+                                <form action="{{ url_for('main.admin_toggle_testimonial_visibility', testimonial_id=testimonial.id) }}" method="POST" class="d-inline">
+                                    {% if testimonial.is_visible %}
+                                    <button type="submit" class="admin-btn admin-btn-sm admin-btn-warning" title="隱藏留言">
+                                        <i class="fas fa-eye-slash"></i>
+                                    </button>
+                                    {% else %}
+                                    <button type="submit" class="admin-btn admin-btn-sm admin-btn-success" title="顯示留言">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% endif %}
+                                </form>
+
+                                <form action="{{ url_for('main.admin_delete_testimonial', testimonial_id=testimonial.id) }}" method="POST" class="d-inline" onsubmit="return confirmDelete('{{ user.display_name or user.username }}');">
+                                    <button type="submit" class="admin-btn admin-btn-sm admin-btn-danger" title="刪除留言">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-quote-left fa-3x mb-3 text-muted"></i>
+            <p class="text-muted">目前沒有成員留言。</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 返回按鈕 -->
+<div class="mt-4 text-center">
+    <a href="{{ url_for('main.admin_dashboard') }}" class="admin-btn admin-btn-secondary">
+        <i class="fas fa-arrow-left me-1"></i> 返回管理面板
+    </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+function confirmDelete(displayNameOrUsername) {
+    return confirm(`您確定要刪除 "${displayNameOrUsername}" 的留言嗎？此操作無法復原。`);
+}
+</script>
+{% endblock %}

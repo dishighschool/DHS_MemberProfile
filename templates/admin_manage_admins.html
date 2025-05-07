@@ -1,0 +1,192 @@
+{% extends "admin_base.html" %}
+
+{% block title %}管理員管理{% endblock %}
+{% block header_title %}管理員管理{% endblock %}
+
+{% block page_icon_class %}fas fa-user-shield{% endblock %}
+{% block page_title %}管理員管理{% endblock %}
+{% block page_subtitle %}管理系統管理員用戶{% endblock %}
+
+{% block content %}
+<!-- 統計資訊卡片 -->
+<div class="admin-card mb-4">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-chart-bar"></i>
+            管理員統計
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="text-center p-3">
+                    <div class="fs-2 fw-bold text-primary">{{ total_admins }}</div>
+                    <div class="text-muted">總管理員</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center p-3">
+                    <div class="fs-2 fw-bold text-success">{{ active_admins }}</div>
+                    <div class="text-muted">活躍管理員</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center p-3">
+                    <div class="fs-2 fw-bold text-info">{{ new_admins }}</div>
+                    <div class="text-muted">新增管理員 (30天)</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center p-3">
+                    <div class="fs-2 fw-bold text-secondary">{{ total_users }}</div>
+                    <div class="text-muted">總用戶數</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 搜尋與過濾卡片 -->
+<div class="admin-card mb-4">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-search"></i>
+            搜尋管理員
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        <div class="d-flex justify-content-between align-items-center">
+            <form action="{{ url_for('main.admin_manage_admins') }}" method="get" class="d-flex">
+                <div class="input-group me-2" style="width: 300px;">
+                    <input type="text" name="search" class="form-control" placeholder="搜尋管理員..." value="{{ request.args.get('search', '') }}">
+                    <button class="btn btn-outline-secondary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
+            <button type="button" class="admin-btn admin-btn-primary" data-bs-toggle="modal" data-bs-target="#addAdminModal">
+                <i class="fas fa-plus me-2"></i>新增管理員
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 管理員列表卡片 -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-users"></i>
+            管理員列表
+            {% if admins %}<span class="badge bg-primary ms-2">{{ admins|length }}</span>{% endif %}
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        {% if admins %}
+        <div class="row">
+            {% for admin in admins %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="position-relative">
+                        {% if admin.id == current_user.id %}
+                        <span class="position-absolute top-0 end-0 translate-middle-y badge bg-danger mt-3 me-3">
+                            您
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <img src="{{ admin.avatar or url_for('static', filename='images/default_avatar.png') }}" alt="{{ admin.username }}" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                            <div>
+                                <h5 class="mb-0">{{ admin.display_name or admin.username }}</h5>
+                                <small class="text-muted">@{{ admin.username }}</small>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div><i class="far fa-envelope me-2 text-muted"></i>{{ admin.email or '未設定電子郵件' }}</div>
+                            <div><i class="far fa-calendar-alt me-2 text-muted"></i>註冊於 {{ admin.created_at.strftime('%Y-%m-%d') }}</div>
+                            <div><i class="far fa-clock me-2 text-muted"></i>上次登入 {{ admin.last_login.strftime('%Y-%m-%d %H:%M') if admin.last_login else '從未登入' }}</div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-3">
+                            <a href="{{ url_for('main.admin_edit_admin', admin_id=admin.id) }}" class="admin-btn admin-btn-sm admin-btn-outline">
+                                <i class="fas fa-edit me-1"></i>編輯
+                            </a>
+                            {% if admin.id != current_user.id %}
+                            <form action="{{ url_for('main.admin_remove_admin_role', user_id=admin.id) }}" method="post" onsubmit="return confirm('您確定要移除 {{ admin.display_name or admin.username }} 的管理員權限嗎？');">
+                                <button type="submit" class="admin-btn admin-btn-sm admin-btn-danger">
+                                    <i class="fas fa-user-slash me-1"></i>移除權限
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="admin-tag admin-tag-info">當前登入用戶</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+            <p class="text-muted">沒有找到符合條件的管理員</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 返回按鈕 -->
+<div class="mt-4 text-center">
+    <a href="{{ url_for('main.admin_dashboard') }}" class="admin-btn admin-btn-secondary">
+        <i class="fas fa-arrow-left me-1"></i> 返回管理儀表板
+    </a>
+</div>
+
+<!-- 新增管理員 Modal -->
+<div class="modal fade" id="addAdminModal" tabindex="-1" aria-labelledby="addAdminModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addAdminModalLabel">新增管理員</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addAdminForm" action="{{ url_for('main.admin_manage_admins') }}" method="post">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">用戶名稱或電子郵件</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                        <div class="form-text">輸入現有用戶的用戶名稱或電子郵件地址</div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>只有已註冊的用戶才能被提升為管理員。如果用戶不存在，請先創建用戶帳號。
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button type="button" class="admin-btn admin-btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="submit" class="admin-btn admin-btn-primary">新增管理員</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 處理新增管理員表單提交
+        const addAdminForm = document.getElementById('addAdminForm');
+        if (addAdminForm) {
+            addAdminForm.addEventListener('submit', function(e) {
+                const username = document.getElementById('username').value.trim();
+                if (!username) {
+                    e.preventDefault();
+                    alert('請輸入用戶名稱或電子郵件');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center my-4">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header text-center">
+                <h3 class="mb-0">團隊驗證</h3>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-4">
+                    {% if avatar %}
+                    <img src="{{ avatar }}" class="user-avatar mb-3" alt="{{ username }}">
+                    {% else %}
+                    <div class="user-avatar mx-auto mb-3 d-flex align-items-center justify-content-center" style="background-color: rgba(255,255,255,0.1);">
+                        <i class="fas fa-user fa-2x text-white-50"></i>
+                    </div>
+                    {% endif %}
+                    {# Changed text-light to text-dark for better contrast on the card background #}
+                    <p class="fs-5 mb-3 text-dark">歡迎 <strong>{{ username }}</strong>！</p>
+                    <p class="text-muted mb-4">請輸入團隊金鑰或管理員代碼以完成註冊</p>
+                </div>
+                
+                <form method="POST" class="glass p-3">
+                    <div class="mb-3">
+                        <label for="team_key" class="form-label text-start d-block text-muted">團隊金鑰 / 管理員代碼</label>
+                        <input type="password" class="form-control" id="team_key" name="team_key" placeholder="輸入金鑰或代碼..." required>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check-circle me-2"></i>
+                            驗證
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="mt-4">
+                    <small class="text-muted">
+                        如果您沒有金鑰或代碼，請聯繫管理員獲取。
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

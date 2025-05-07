@@ -1,0 +1,623 @@
+{% extends "admin_base.html" %}
+
+{% block title %}標籤管理{% endblock %}
+{% block header_title %}標籤管理{% endblock %}
+
+{% block page_icon_class %}fas fa-tags{% endblock %}
+{% block page_title %}標籤管理{% endblock %}
+{% block page_subtitle %}管理成員分類標籤，自定義標籤顯示效果{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css">
+<style>
+    .tag-preview {
+        font-size: 1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        margin-right: 10px;
+        margin-bottom: 10px;
+    }
+    
+    .tag-preview-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 15px 0;
+    }
+    
+    .tag-list-item {
+        background-color: #fff;
+        border-radius: var(--border-radius);
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .tag-list-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .tag-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .tag-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+    
+    .tag-title-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+    
+    .tag-actions {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .tag-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .tag-detail {
+        font-size: 0.85rem;
+        padding: 4px 10px;
+        border-radius: 4px;
+        background-color: #f8f9fa;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .tag-detail-label {
+        font-weight: 500;
+        opacity: 0.7;
+    }
+    
+    .tag-detail-value {
+        font-weight: 600;
+    }
+    
+    .tag-description {
+        margin-top: 10px;
+        font-size: 0.9rem;
+        color: #6c757d;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .tag-form-section {
+        background-color: #f8f9fa;
+        border-radius: var(--border-radius);
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .tag-form-title {
+        margin-bottom: 20px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #495057;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+        padding-bottom: 10px;
+    }
+    
+    .form-icon-preview {
+        width: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+    
+    .btn-icon-select {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        color: #6c757d;
+        cursor: pointer;
+        padding: 0;
+    }
+    
+    .color-preview {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 8px;
+    }
+    
+    .icon-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+        gap: 8px;
+        max-height: 350px;
+        overflow-y: auto;
+    }
+    
+    .icon-item {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1.2rem;
+        color: #495057;
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: all 0.2s;
+    }
+    
+    .icon-item:hover {
+        background-color: #e9ecef;
+        transform: scale(1.1);
+    }
+    
+    .icon-item.selected {
+        background-color: #6c5ce7;
+        color: white;
+        border-color: #6c5ce7;
+    }
+    
+    .icon-search {
+        margin-bottom: 10px;
+    }
+    
+    .tag-empty-state {
+        text-align: center;
+        padding: 40px 0;
+    }
+    
+    .tag-empty-icon {
+        font-size: 3.5rem;
+        color: #dee2e6;
+        margin-bottom: 20px;
+    }
+    
+    .tag-empty-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #343a40;
+        margin-bottom: 10px;
+    }
+    
+    .tag-empty-description {
+        color: #6c757d;
+        margin-bottom: 20px;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    
+    .tag-stats-badge {
+        margin-left: 8px;
+        background-color: #e9ecef;
+        color: #495057;
+        padding: 3px 8px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+    
+    .is-inactive {
+        opacity: 0.5;
+    }
+
+    /* 圖標選擇器樣式優化 */
+    .icon-category {
+        margin-bottom: 15px;
+    }
+    
+    .icon-category-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding: 5px 10px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        margin-bottom: 10px;
+    }
+    
+    .icon-filter-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-bottom: 10px;
+    }
+    
+    .icon-filter-button {
+        padding: 5px 10px;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        cursor: pointer;
+    }
+    
+    .icon-filter-button.active {
+        background-color: #6c5ce7;
+        color: white;
+        border-color: #6c5ce7;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 標籤創建表單 -->
+<div class="admin-card mb-4">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-plus-circle"></i>
+            {{ "編輯標籤" if tag else "新增標籤" }}
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        <form id="tagForm" method="POST" action="{{ url_for('main.admin_manage_tags') }}">
+            <input type="hidden" name="tag_id" id="tag_id" value="{{ tag.id if tag else '' }}">
+            
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <!-- 標籤基本資訊 -->
+                    <div class="tag-form-section">
+                        <h4 class="tag-form-title">基本資訊</h4>
+                        <div class="mb-3 row">
+                            <label for="name" class="col-sm-3 col-form-label">標籤名稱*</label>
+                            <div class="col-sm-9">
+                                <input type="text" class="form-control" id="name" name="name" required 
+                                       value="{{ tag.name if tag else '' }}" placeholder="英文名稱，例如 developer">
+                                <div class="form-text">系統識別用，請使用英文且不含空格</div>
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label for="display_name" class="col-sm-3 col-form-label">顯示名稱*</label>
+                            <div class="col-sm-9">
+                                <input type="text" class="form-control" id="display_name" name="display_name" required 
+                                       value="{{ tag.display_name if tag else '' }}" placeholder="例如：開發者">
+                                <div class="form-text">呈現給用戶看的名稱，可使用中文</div>
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label for="description" class="col-sm-3 col-form-label">描述</label>
+                            <div class="col-sm-9">
+                                <textarea class="form-control" id="description" name="description" rows="2" 
+                                         placeholder="標籤說明（選填）">{{ tag.description if tag else '' }}</textarea>
+                                <div class="form-text">簡短描述這個標籤的用途</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <!-- 標籤外觀設定 -->
+                    <div class="tag-form-section">
+                        <h4 class="tag-form-title">外觀設定</h4>
+                        <div class="mb-3 row">
+                            <label for="color" class="col-sm-3 col-form-label">標籤顏色*</label>
+                            <div class="col-sm-9">
+                                <div class="input-group">
+                                    <span class="input-group-text p-0">
+                                        <span id="colorPreview" class="color-preview" style="background-color: {{ tag.color if tag else '#6c5ce7' }};"></span>
+                                    </span>
+                                    <input type="color" class="form-control form-control-color" id="color" name="color" 
+                                           value="{{ tag.color if tag else '#6c5ce7' }}" title="選擇標籤顏色">
+                                </div>
+                                <div class="form-text">標籤背景顏色</div>
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label for="icon_class" class="col-sm-3 col-form-label">圖標</label>
+                            <div class="col-sm-9">
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <span id="iconPreview" class="form-icon-preview">
+                                            <i class="{{ tag.icon_class if tag else 'fas fa-tag' }}"></i>
+                                        </span>
+                                    </span>
+                                    <input type="text" class="form-control" id="icon_class" name="icon_class" 
+                                           value="{{ tag.icon_class if tag else 'fas fa-tag' }}" placeholder="圖標類別">
+                                    <button class="btn btn-outline-secondary" type="button" id="iconSelectBtn">
+                                        <i class="fas fa-icons"></i> 選擇
+                                    </button>
+                                </div>
+                                <div class="form-text">Font Awesome 圖標類別</div>
+                            </div>
+                        </div>
+                        <div class="mb-4 row">
+                            <label for="display_order" class="col-sm-3 col-form-label">顯示順序</label>
+                            <div class="col-sm-9">
+                                <input type="number" class="form-control" id="display_order" name="display_order" 
+                                       value="{{ tag.display_order if tag else 0 }}" min="0">
+                                <div class="form-text">數字越小排序越前</div>
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <div class="col-sm-3"></div>
+                            <div class="col-sm-9">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
+                                           {{ 'checked' if not tag or tag.is_active else '' }}>
+                                    <label class="form-check-label" for="is_active">
+                                        啟用此標籤
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 標籤預覽 -->
+            <div class="mb-4">
+                <h4 class="mb-2">標籤預覽</h4>
+                <div class="tag-preview-wrapper">
+                    <span id="tagPreview" class="tag-preview" style="background-color: {{ tag.color if tag else '#6c5ce7' }}; color: white;">
+                        <i class="{{ tag.icon_class if tag else 'fas fa-tag' }}"></i>
+                        <span>{{ tag.display_name if tag else '標籤預覽' }}</span>
+                    </span>
+                </div>
+            </div>
+            
+            <!-- 表單按鈕 -->
+            <div class="d-flex justify-content-between">
+                <div>
+                    {% if tag %}
+                    <a href="{{ url_for('main.admin_manage_tags') }}" class="admin-btn admin-btn-secondary">
+                        <i class="fas fa-plus me-1"></i> 新增標籤
+                    </a>
+                    {% endif %}
+                </div>
+                <div>
+                    <button type="reset" class="admin-btn admin-btn-outline" id="resetButton">
+                        <i class="fas fa-undo me-1"></i> 重置
+                    </button>
+                    <button type="submit" class="admin-btn admin-btn-primary ms-2">
+                        <i class="fas fa-save me-1"></i> {{ '儲存變更' if tag else '新增標籤' }}
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 標籤列表 -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-tag"></i>
+            現有標籤
+            {% if tags %}<span class="badge bg-primary ms-2">{{ tags|length }}</span>{% endif %}
+        </h3>
+        <div>
+            <a href="{{ url_for('main.admin_dashboard') }}" class="admin-btn admin-btn-sm admin-btn-outline">
+                <i class="fas fa-arrow-left"></i> 返回儀表板
+            </a>
+        </div>
+    </div>
+    <div class="admin-card-body">
+        {% if tags %}
+        <div class="row">
+            {% for tag in tags %} 
+            <div class="col-md-6 col-xl-4">
+                <div class="tag-list-item {{ 'is-inactive' if not tag.is_active }}">
+                    <div class="tag-header">
+                        <div class="tag-title">
+                            <div class="tag-title-icon" style="background-color: {{ tag.color }};">
+                                <i class="{{ tag.icon_class or 'fas fa-tag' }}"></i>
+                            </div>
+                            <div>
+                                {{ tag.display_name }}
+                                <div class="text-muted small">({{ tag.name }})</div>
+                            </div>
+                            {% if tag.users %}
+                            <span class="tag-stats-badge">{{ tag.users|length }} 位成員</span>
+                            {% endif %}
+                        </div>
+                        <div class="tag-actions">
+                            <a href="{{ url_for('main.admin_manage_tags', tag_id=tag.id) }}" class="admin-btn admin-btn-sm admin-btn-outline" title="編輯標籤">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form action="{{ url_for('main.admin_toggle_tag', tag_id=tag.id) }}" method="POST" class="d-inline">
+                                <button type="submit" class="admin-btn admin-btn-sm {{ 'admin-btn-success' if not tag.is_active else 'admin-btn-warning' }}" title="{{ '啟用標籤' if not tag.is_active else '停用標籤' }}">
+                                    <i class="{{ 'fas fa-eye' if not tag.is_active else 'fas fa-eye-slash' }}"></i>
+                                </button>
+                            </form>
+                            <form action="{{ url_for('main.admin_delete_tag', tag_id=tag.id) }}" method="POST" class="d-inline" onsubmit="return confirmDelete('{{ tag.display_name }}')">
+                                <button type="submit" class="admin-btn admin-btn-sm admin-btn-danger" title="刪除標籤">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="tag-details">
+                        <div class="tag-detail">
+                            <span class="tag-detail-label">順序:</span>
+                            <span class="tag-detail-value">{{ tag.display_order }}</span>
+                        </div>
+                        <div class="tag-detail">
+                            <span class="tag-detail-label">狀態:</span>
+                            <span class="tag-detail-value">
+                                {% if tag.is_active %}
+                                <span class="text-success">啟用中</span>
+                                {% else %}
+                                <span class="text-secondary">已停用</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% if tag.description %}
+                    <div class="tag-description">{{ tag.description }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="tag-empty-state">
+            <div class="tag-empty-icon">
+                <i class="fas fa-tags"></i>
+            </div>
+            <h3 class="tag-empty-title">尚未創建任何標籤</h3>
+            <p class="tag-empty-description">標籤可以幫助您將成員分類，並用於公開頁面的成員過濾功能。請使用上方表單創建您的第一個標籤。</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 圖標選擇模態框 -->
+<div class="modal fade" id="iconModal" tabindex="-1" aria-labelledby="iconModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="iconModalLabel">選擇圖標</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="form-control icon-search mb-3" placeholder="搜尋圖標..." id="iconSearch">
+                <div class="icon-grid">
+                    <div class="icon-item" data-icon="fas fa-tag"><i class="fas fa-tag"></i></div>
+                    <div class="icon-item" data-icon="fas fa-tags"><i class="fas fa-tags"></i></div>
+                    <div class="icon-item" data-icon="fas fa-code"><i class="fas fa-code"></i></div>
+                    <div class="icon-item" data-icon="fas fa-laptop-code"><i class="fas fa-laptop-code"></i></div>
+                    <div class="icon-item" data-icon="fas fa-terminal"><i class="fas fa-terminal"></i></div>
+                    <div class="icon-item" data-icon="fas fa-bug"><i class="fas fa-bug"></i></div>
+                    <div class="icon-item" data-icon="fas fa-cogs"><i class="fas fa-cogs"></i></div>
+                    <div class="icon-item" data-icon="fas fa-database"><i class="fas fa-database"></i></div>
+                    <div class="icon-item" data-icon="fas fa-server"><i class="fas fa-server"></i></div>
+                    <div class="icon-item" data-icon="fas fa-robot"><i class="fas fa-robot"></i></div>
+                    <div class="icon-item" data-icon="fas fa-brain"><i class="fas fa-brain"></i></div>
+                    <div class="icon-item" data-icon="fas fa-microchip"><i class="fas fa-microchip"></i></div>
+                    <div class="icon-item" data-icon="fas fa-palette"><i class="fas fa-palette"></i></div>
+                    <div class="icon-item" data-icon="fas fa-paint-brush"><i class="fas fa-paint-brush"></i></div>
+                    <div class="icon-item" data-icon="fas fa-pencil-ruler"><i class="fas fa-pencil-ruler"></i></div>
+                    <div class="icon-item" data-icon="fas fa-camera"><i class="fas fa-camera"></i></div>
+                    <div class="icon-item" data-icon="fas fa-video"><i class="fas fa-video"></i></div>
+                    <div class="icon-item" data-icon="fas fa-photo-video"><i class="fas fa-photo-video"></i></div>
+                    <div class="icon-item" data-icon="fas fa-music"><i class="fas fa-music"></i></div>
+                    <div class="icon-item" data-icon="fas fa-headphones"><i class="fas fa-headphones"></i></div>
+                    <div class="icon-item" data-icon="fas fa-microphone"><i class="fas fa-microphone"></i></div>
+                    <div class="icon-item" data-icon="fas fa-graduation-cap"><i class="fas fa-graduation-cap"></i></div>
+                    <div class="icon-item" data-icon="fas fa-user-graduate"><i class="fas fa-user-graduate"></i></div>
+                    <div class="icon-item" data-icon="fas fa-book"><i class="fas fa-book"></i></div>
+                    <div class="icon-item" data-icon="fas fa-book-open"><i class="fas fa-book-open"></i></div>
+                    <div class="icon-item" data-icon="fas fa-school"><i class="fas fa-school"></i></div>
+                    <div class="icon-item" data-icon="fas fa-user"><i class="fas fa-user"></i></div>
+                    <div class="icon-item" data-icon="fas fa-users"><i class="fas fa-users"></i></div>
+                    <div class="icon-item" data-icon="fas fa-user-tie"><i class="fas fa-user-tie"></i></div>
+                    <div class="icon-item" data-icon="fas fa-user-tag"><i class="fas fa-user-tag"></i></div>
+                    <div class="icon-item" data-icon="fas fa-id-badge"><i class="fas fa-id-badge"></i></div>
+                    <div class="icon-item" data-icon="fas fa-id-card"><i class="fas fa-id-card"></i></div>
+                    <div class="icon-item" data-icon="fas fa-crown"><i class="fas fa-crown"></i></div>
+                    <div class="icon-item" data-icon="fas fa-award"><i class="fas fa-award"></i></div>
+                    <div class="icon-item" data-icon="fas fa-medal"><i class="fas fa-medal"></i></div>
+                    <div class="icon-item" data-icon="fas fa-trophy"><i class="fas fa-trophy"></i></div>
+                    <div class="icon-item" data-icon="fas fa-star"><i class="fas fa-star"></i></div>
+                    <div class="icon-item" data-icon="fas fa-heart"><i class="fas fa-heart"></i></div>
+                    <div class="icon-item" data-icon="fas fa-lightbulb"><i class="fas fa-lightbulb"></i></div>
+                    <div class="icon-item" data-icon="fas fa-chart-line"><i class="fas fa-chart-line"></i></div>
+                    <div class="icon-item" data-icon="fas fa-chart-bar"><i class="fas fa-chart-bar"></i></div>
+                    <div class="icon-item" data-icon="fas fa-chart-pie"><i class="fas fa-chart-pie"></i></div>
+                    <div class="icon-item" data-icon="fas fa-globe"><i class="fas fa-globe"></i></div>
+                    <div class="icon-item" data-icon="fas fa-globe-asia"><i class="fas fa-globe-asia"></i></div>
+                    <div class="icon-item" data-icon="fas fa-comments"><i class="fas fa-comments"></i></div>
+                    <div class="icon-item" data-icon="fas fa-language"><i class="fas fa-language"></i></div>
+                    <div class="icon-item" data-icon="fas fa-gamepad"><i class="fas fa-gamepad"></i></div>
+                    <div class="icon-item" data-icon="fas fa-dice"><i class="fas fa-dice"></i></div>
+                    <div class="icon-item" data-icon="fas fa-chess"><i class="fas fa-chess"></i></div>
+                    <div class="icon-item" data-icon="fas fa-puzzle-piece"><i class="fas fa-puzzle-piece"></i></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="selectIconBtn">選擇</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/iconSelector.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 處理標籤編輯按鈕
+    const tagId = document.getElementById('tag_id').value;
+    if (tagId) {
+        // 我們在編輯模式，需要確保所有表單字段都已填充
+        console.log("Tag edit mode activated for tag ID: " + tagId);
+    }
+    
+    // 預覽標籤
+    function updateTagPreview() {
+        const color = document.getElementById('color').value;
+        const iconClass = document.getElementById('icon_class').value;
+        const displayName = document.getElementById('display_name').value || '標籤預覽';
+        
+        const tagPreview = document.getElementById('tagPreview');
+        const colorPreview = document.getElementById('colorPreview');
+        const iconPreview = document.getElementById('iconPreview');
+        
+        tagPreview.style.backgroundColor = color;
+        colorPreview.style.backgroundColor = color;
+        
+        tagPreview.innerHTML = `<i class="${iconClass}"></i><span>${displayName}</span>`;
+        iconPreview.innerHTML = `<i class="${iconClass}"></i>`;
+    }
+    
+    // 監聽表單輸入變化
+    document.getElementById('color').addEventListener('input', updateTagPreview);
+    document.getElementById('icon_class').addEventListener('input', updateTagPreview);
+    document.getElementById('display_name').addEventListener('input', updateTagPreview);
+    
+    // 重置按鈕
+    document.getElementById('resetButton').addEventListener('click', function() {
+        setTimeout(updateTagPreview, 10);
+    });
+    
+    // 初始化模組化圖標選擇器
+    const iconSelector = IconSelector.init({
+        buttonSelector: '#iconSelectBtn',
+        iconInputSelector: '#icon_class',
+        iconPreviewSelector: '#iconPreview',
+        initialIcon: document.getElementById('icon_class').value || 'fas fa-tag',
+        onSelect: function(selectedIcon) {
+            // 圖標選擇後更新預覽
+            updateTagPreview();
+        }
+    });
+    
+    // 初始化預覽
+    updateTagPreview();
+});
+
+// 刪除確認
+function confirmDelete(displayName) {
+    return confirm(`您確定要刪除標籤「${displayName}」嗎？此操作無法撤銷，且將從所有已分配的用戶中移除該標籤。`);
+}
+</script>
+{% endblock %}

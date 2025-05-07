@@ -1,0 +1,125 @@
+{% extends "admin_base.html" %}
+
+{% block title %}管理註冊金鑰{% endblock %}
+{% block header_title %}管理註冊金鑰{% endblock %}
+
+{% block page_icon_class %}fas fa-key{% endblock %}
+{% block page_title %}管理註冊金鑰{% endblock %}
+{% block page_subtitle %}管理團隊成員和管理員的註冊代碼{% endblock %}
+
+{% block content %}
+<!-- 當前金鑰及代碼顯示 -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h3 class="admin-card-title">
+                    <i class="admin-card-icon fas fa-users"></i>
+                    團隊成員註冊金鑰
+                </h3>
+            </div>
+            <div class="admin-card-body">
+                <div class="input-group">
+                    <input type="text" class="form-control" value="{{ team_key }}" id="team-key-input" readonly>
+                    <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('team-key-input')">
+                        <i class="fas fa-copy"></i> 複製
+                    </button>
+                </div>
+                <p class="text-muted mt-2">
+                    <i class="fas fa-info-circle me-1"></i> 此金鑰用於驗證新團隊成員註冊。
+                </p>
+                <form action="{{ url_for('main.admin_refresh_keys') }}" method="POST" class="mt-3" onsubmit="return confirmRefresh('團隊成員註冊金鑰');">
+                    <input type="hidden" name="key_type" value="team_key">
+                    <button type="submit" class="admin-btn admin-btn-primary">
+                        <i class="fas fa-sync-alt me-1"></i> 重新生成團隊註冊金鑰
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="admin-card">
+            <div class="admin-card-header bg-warning text-dark">
+                <h3 class="admin-card-title">
+                    <i class="admin-card-icon fas fa-user-shield"></i>
+                    管理員註冊代碼
+                </h3>
+            </div>
+            <div class="admin-card-body">
+                <div class="input-group">
+                    <input type="text" class="form-control" value="{{ admin_key }}" id="admin-key-input" readonly>
+                    <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('admin-key-input')">
+                        <i class="fas fa-copy"></i> 複製
+                    </button>
+                </div>
+                <p class="text-muted mt-2">
+                    <i class="fas fa-exclamation-triangle me-1"></i> 此代碼用於註冊管理員帳戶，請妥善保管！
+                </p>
+                <form action="{{ url_for('main.admin_refresh_keys') }}" method="POST" class="mt-3" onsubmit="return confirmRefresh('管理員註冊代碼');">
+                    <input type="hidden" name="key_type" value="admin_key">
+                    <button type="submit" class="admin-btn admin-btn-warning">
+                        <i class="fas fa-sync-alt me-1"></i> 重新生成管理員註冊代碼
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 安全提示卡片 -->
+<div class="admin-card mb-4">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-shield-alt"></i>
+            安全提示
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>定期更換金鑰與代碼</strong> 有助於提高系統安全性，建議定期更換這些代碼。
+        </div>
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>請勿公開分享</strong> 這些金鑰和代碼，特別是管理員註冊代碼，應僅提供給受信任的人員。
+        </div>
+        <div class="alert alert-danger">
+            <i class="fas fa-radiation me-2"></i>
+            <strong>重新生成後立即生效</strong>，原有金鑰將失效，無法再用於註冊。
+        </div>
+    </div>
+</div>
+
+<!-- 返回按鈕 -->
+<div class="mt-4 text-center">
+    <a href="{{ url_for('main.admin_dashboard') }}" class="admin-btn admin-btn-secondary">
+        <i class="fas fa-arrow-left me-1"></i> 返回管理員儀表板
+    </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    function copyToClipboard(elementId) {
+        const element = document.getElementById(elementId);
+        element.select();
+        element.setSelectionRange(0, 99999); // For mobile devices
+        document.execCommand('copy');
+        
+        // 顯示複製成功提示
+        const originalText = element.nextElementSibling.innerHTML;
+        element.nextElementSibling.innerHTML = '<i class="fas fa-check"></i> 已複製！';
+        
+        // 2秒後還原按鈕文字
+        setTimeout(() => {
+            element.nextElementSibling.innerHTML = originalText;
+        }, 2000);
+    }
+    
+    function confirmRefresh(keyType) {
+        return confirm(`確定要重新生成${keyType}？\n警告：重新生成後，原有金鑰將立即失效，無法再用於註冊。`);
+    }
+</script>
+{% endblock %}

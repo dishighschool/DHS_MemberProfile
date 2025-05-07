@@ -1,0 +1,71 @@
+{% extends "public_base.html" %}
+
+{% block styles %}
+<style>
+    /* 錯誤頁面樣式 */
+    .error-container {
+        margin: 5rem auto;
+        max-width: 600px;
+        background-color: #1a1a1a;
+        border-radius: 12px;
+        padding: 3rem 2rem;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    .error-icon {
+        font-size: 5rem;
+        margin-bottom: 1.5rem;
+        color: #C58CFF;
+        text-shadow: 0 0 15px rgba(197, 140, 255, 0.4);
+    }
+    
+    .error-title {
+        font-size: 2.2rem;
+        color: white;
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+    }
+    
+    .error-message {
+        font-size: 1.1rem;
+        color: rgba(255, 255, 255, 0.7);
+        margin-bottom: 2rem;
+        line-height: 1.6;
+    }
+    
+    .back-button {
+        display: inline-block;
+        background-color: #C58CFF;
+        color: white !important;
+        padding: 0.8rem 1.8rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        border: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .back-button:hover {
+        background-color: #D7ADFF;
+        color: #000 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(215, 173, 255, 0.4);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="error-container">
+        <i class="fas fa-exclamation-circle error-icon"></i>
+        <h1 class="error-title">{{ error_title | default('頁面無法顯示') }}</h1>
+        <p class="error-message">{{ error_message | default('抱歉，您請求的頁面目前無法顯示。這可能是因為該頁面不存在或已被移除。') }}</p>
+        <a href="{{ url_for('main.index') }}" class="back-button">
+            <i class="fas fa-home me-2"></i>返回首頁
+        </a>
+    </div>
+</div>
+{% endblock %}

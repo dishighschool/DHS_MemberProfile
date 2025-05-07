@@ -1,0 +1,130 @@
+/**
+ * 統一的漸層樣式定義
+ * 這個文件包含所有漸層的 CSS 類定義，與 gradients.js 中的定義保持同步
+ */
+
+/* 漸層預覽類 */
+.gradient-default {
+    background: linear-gradient(135deg, #1A0038 0%, #32007A 50%, #6237A0 100%);
+}
+
+.gradient-midnight-ocean {
+    background: linear-gradient(135deg, #020024 0%, #090979 35%, #00d4ff 100%);
+}
+
+.gradient-sunset {
+    background: linear-gradient(135deg, #ff4e50 0%, #f9d423 100%);
+}
+
+.gradient-aurora {
+    background: linear-gradient(135deg, #0F2027 0%, #203A43 50%, #2C5364 100%);
+}
+
+.gradient-cosmic {
+    background: linear-gradient(135deg, #3E1E68 0%, #834D9B 100%);
+}
+
+.gradient-forest {
+    background: linear-gradient(135deg, #134E5E 0%, #71B280 100%);
+}
+
+/* 改良的櫻花飄雪漸層 */
+.gradient-cherry {
+    background: linear-gradient(135deg, #EB3349 0%, #FF98B7 50%, #F45C43 100%);
+}
+
+.gradient-winter {
+    background: linear-gradient(135deg, #8e9eab 0%, #eef2f3 100%);
+}
+
+/* --- 新增漸層 --- */
+.gradient-deep-ocean {
+    background: linear-gradient(135deg, #1A2980 0%, #26D0CE 100%);
+}
+
+.gradient-lavender {
+    background: linear-gradient(135deg, #654EA3 0%, #EAAFC8 100%);
+}
+
+.gradient-golden-dawn {
+    background: linear-gradient(135deg, #F37335 0%, #FDC830 100%);
+}
+
+.gradient-emerald {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.gradient-night-sky {
+    background: linear-gradient(135deg, #0F2027 0%, #2C5364 70%, #203A43 100%);
+}
+
+.gradient-tech-blue {
+    background: linear-gradient(135deg, #061161 0%, #30cfd0 100%);
+}
+
+/* 用於背景的全頁漸層樣式 */
+body.gradient-bg {
+    background-color: transparent !important;
+    position: relative;
+    z-index: 0;
+}
+
+/* 確保漸層背景固定且不重複 */
+body[class*='gradient-'] {
+    background-attachment: fixed !important;
+    background-repeat: no-repeat !important;
+    background-size: cover !important;
+}
+
+/* 移除基本背景 */
+body.gradient-bg::before {
+    content: none !important;
+}
+
+/* 黑色透明漸層覆蓋，用於提高可讀性 */
+.gradient-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* 為預覽頁面的漸層交互準備的樣式 */
+.gradient-option {
+    width: 70px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.gradient-option:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.gradient-option.active {
+    border-color: var(--primary-color, #6c5ce7);
+    box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.3);
+}
+
+.gradient-preview {
+    height: 60px;
+    width: 100%;
+}
+
+.gradient-name {
+    display: block;
+    padding: 5px;
+    font-size: 0.75rem;
+    background: white;
+    color: #333;
+    font-weight: 500;
+}

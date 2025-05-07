@@ -1,0 +1,61 @@
+{% extends "admin_base.html" %}
+
+{% block title %}公開頁面設定{% endblock %}
+{% block header_title %}公開頁面設定{% endblock %}
+
+{% block page_icon_class %}fas fa-globe{% endblock %}
+{% block page_title %}公開頁面設定{% endblock %}
+{% block page_subtitle %}自訂公開頁面的外觀及連結設定{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 社群媒體連結管理卡片 -->
+    <div class="col-md-6 mb-4">
+        <div class="admin-card h-100">
+            <div class="admin-card-header">
+                <h3 class="admin-card-title">
+                    <i class="admin-card-icon fas fa-share-alt"></i>
+                    社群媒體連結
+                </h3>
+            </div>
+            <div class="admin-card-body">
+                <p>管理顯示在公開頁面頁尾的社群媒體連結。</p>
+                <p class="text-muted">這些連結將顯示在所有公開頁面的頁尾區域，方便訪客與社群連結。</p>
+            </div>
+            <div class="admin-card-footer">
+                <a href="{{ url_for('main.admin_manage_social_links') }}" class="admin-btn admin-btn-primary">
+                    <i class="fas fa-cog me-1"></i> 管理社群媒體連結
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 導航連結管理卡片 -->
+    <div class="col-md-6 mb-4">
+        <div class="admin-card h-100">
+            <div class="admin-card-header">
+                <h3 class="admin-card-title">
+                    <i class="admin-card-icon fas fa-link"></i>
+                    導航連結
+                </h3>
+            </div>
+            <div class="admin-card-body">
+                <p>管理顯示在公開頁面頂部導航欄的連結。</p>
+                <p class="text-muted">這些連結將顯示在所有公開頁面的頂部導航欄，可以引導訪客到其他頁面或外部資源。</p>
+            </div>
+            <div class="admin-card-footer">
+                <a href="{{ url_for('main.admin_manage_nav_links') }}" class="admin-btn admin-btn-info">
+                    <i class="fas fa-cog me-1"></i> 管理導航連結
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 回到管理員儀表板的按鈕 -->
+<div class="mt-4 text-center">
+    <a href="{{ url_for('main.admin_dashboard') }}" class="admin-btn admin-btn-secondary">
+        <i class="fas fa-arrow-left me-1"></i> 返回管理員儀表板
+    </a>
+</div>
+{% endblock %}
