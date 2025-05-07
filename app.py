@@ -18,6 +18,8 @@ def create_app(config_class=Config):
     # 確保有一個強密鑰
     if app.config['SECRET_KEY']:
         app.config['SECRET_KEY'] = secrets.token_hex(16)
+    else:
+        raise BaseException("SECRET_KEY NOT FOUND!")
     
     # 初始化資料庫
     db.init_app(app)
@@ -54,6 +56,7 @@ def create_app(config_class=Config):
         db.create_all()
         
         # 為開發階段添加一些調試路由
+        # TODO: Route 全都放一個資料夾
         if app.debug:
             @app.route('/debug/session')
             def debug_session():
