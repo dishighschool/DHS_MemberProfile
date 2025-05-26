@@ -5,6 +5,7 @@ from models.user import db, User
 from config import Config
 import secrets
 from markupsafe import Markup
+from utils.update_avatar import set_auto_update_avatar
 from dotenv import load_dotenv
 
 #
@@ -50,13 +51,13 @@ def create_app(config_class=Config):
         
         # Ensure database tables exist (disabled in production)
         # db.create_all()  # 已部署環境中不應自動創建資料表
-        
-        # Add development-only debug routes
+          # Add development-only debug routes
         if app.debug:
             @app.route('/debug/session')
             def debug_session():
                 return dict(session)
-    
+            
+    set_auto_update_avatar(app)  # 設定自動更新頭像的排程任務
     return app
 
 # Create a global Flask app instance for use with Gunicorn or development
@@ -64,5 +65,5 @@ app = create_app()
 
 
 if __name__ == '__main__':
-    print("Flask 应用已启动! 访问: http://0.0.0.0:2005 或 http://<服务器IP>:2005")
+    print("Flask 應用已啟動! 訪問: http://0.0.0.0:2005 或 http://<服務器IP>:2005")
     app.run(host='0.0.0.0', debug=False, port=2005)
