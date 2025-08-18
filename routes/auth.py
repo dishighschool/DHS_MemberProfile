@@ -14,7 +14,7 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/admin-panel/auth')
 DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID")
 DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET")
 # 更新回調 URI 以符合新的路徑
-DISCORD_REDIRECT_URI = "http://127.0.0.1:5000/admin-panel/auth/discord/callback"
+DISCORD_REDIRECT_URI = os.environ.get("DISCORD_REDIRECT_URI")
 DISCORD_API_ENDPOINT = "https://discord.com/api/v10"
 DISCORD_AUTH_URL = f"{DISCORD_API_ENDPOINT}/oauth2/authorize"
 DISCORD_TOKEN_URL = f"{DISCORD_API_ENDPOINT}/oauth2/token"
