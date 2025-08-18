@@ -94,6 +94,7 @@
                 <h2><i class="fas fa-link"></i> 社交媒體</h2>
                 <div class="social-grid">
                     {% for link in social_links %}
+                        <!-- TODO: MAILTO link -->
                         {% set is_url = link.url.startswith('http://') or link.url.startswith('https://') %}
                         {% if is_url %}
                             <a href="{{ link.url }}" class="social-card" target="_blank" rel="noopener noreferrer">

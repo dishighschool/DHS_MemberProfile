@@ -7,3 +7,4 @@ python-dotenv==1.0.0
 oauthlib==3.2.2
 requests-oauthlib==2.0.0
 itsdangerous==2.2.0
+Flask-APScheduler==1.12.4
