@@ -2,6 +2,7 @@ import os
 from flask import Flask, url_for, session, redirect
 from flask_login import LoginManager
 from flask_migrate import Migrate
+from flask_session import Session
 from models.user import db, User
 from config import Config
 import secrets
@@ -21,6 +22,9 @@ def create_app(config_class=Config):
     
     # Initialize SQLAlchemy database
     db.init_app(app)
+    
+    # Initialize Flask-Session for multi-worker support
+    Session(app)
     
     # Initialize Flask-Migrate
     migrate = Migrate(app, db)
