@@ -324,8 +324,8 @@
 {% block content %}
 <!-- 返回按鈕 -->
 <div class="mb-4">
-    <a href="{{ url_for('main.admin_manage_users', page=page, search=search_query or None) }}" class="admin-btn admin-btn-outline">
-        <i class="fas fa-arrow-left me-2"></i>返回用戶列表
+    <a href="{{ url_for('main.admin_manage_users', page=page, search=search_query or None, role=role_filter) }}" class="admin-btn admin-btn-outline">
+        <i class="fas fa-arrow-left me-2"></i>返回成員列表
     </a>
     
     <a href="{{ url_for('main.public_profile', username=user_to_edit.username) }}" target="_blank" class="admin-btn admin-btn-outline ms-2 btn-preview">
@@ -387,7 +387,34 @@
                             <span class="badge bg-danger">已停用</span>
                             {% endif %}
                         </div>
+                        <div class="account-info-item">
+                            <strong>用戶角色：</strong> 
+                            {% if user_to_edit.is_admin %}
+                            <span class="badge bg-danger"><i class="fas fa-shield-alt me-1"></i>管理員</span>
+                            {% else %}
+                            <span class="badge bg-primary"><i class="fas fa-user me-1"></i>一般用戶</span>
+                            {% endif %}
+                        </div>
                     </div>
+                    
+                    {% if user_to_edit.id != current_user.id %}
+                    <div class="mt-4">
+                        {% if user_to_edit.created_at <= current_user.created_at %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            此用戶註冊時間早於或等於您，您無權修改其管理員權限。
+                        </div>
+                        {% else %}
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="is_admin" name="is_admin" {% if user_to_edit.is_admin %}checked{% endif %}>
+                            <label class="form-check-label fw-bold" for="is_admin">
+                                <i class="fas fa-shield-alt me-1"></i>管理員權限
+                            </label>
+                            <div class="form-text">啟用後，此用戶將擁有完整的系統管理權限</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
 
                     {% if tags %}
                     <div class="mt-4">
@@ -432,18 +459,28 @@
                     <form id="toggle-verify-form" action="{{ url_for('main.admin_toggle_verify_user', user_id=user_to_edit.id) }}" method="POST" style="display: none;">
                         <input type="hidden" name="page" value="{{ page }}">
                         <input type="hidden" name="search" value="{{ search_query or '' }}">
+                        <input type="hidden" name="role" value="{{ role_filter }}">
                     </form>
 
                     <!-- 刪除帳戶按鈕 -->
+                    {% if user_to_edit.id != current_user.id %}
                     <div class="d-grid">
-                        <a href="#" class="admin-btn admin-btn-danger" onclick="return confirmDelete('{{ user_to_edit.display_name or user_to_edit.username }}') && document.getElementById('delete-form').submit();">
+                        <a href="#" class="admin-btn admin-btn-danger" onclick="return confirmDelete('{{ user_to_edit.display_name or user_to_edit.username }}', {{ 'true' if user_to_edit.is_admin else 'false' }}) && document.getElementById('delete-form').submit();">
                             <i class="fas fa-trash-alt me-2"></i>刪除此帳戶
                         </a>
                     </div>
+                    {% else %}
+                    <div class="d-grid">
+                        <button type="button" class="admin-btn admin-btn-secondary" disabled>
+                            <i class="fas fa-ban me-2"></i>無法刪除自己的帳戶
+                        </button>
+                    </div>
+                    {% endif %}
                     
                     <form id="delete-form" action="{{ url_for('main.admin_delete_user', user_id=user_to_edit.id) }}" method="POST" style="display: none;">
                         <input type="hidden" name="page" value="{{ page }}">
                         <input type="hidden" name="search" value="{{ search_query or '' }}">
+                        <input type="hidden" name="role" value="{{ role_filter }}">
                     </form>
                 </div>
             </div>
@@ -530,7 +567,7 @@
                     </div>
                 </div>
                 <div class="admin-card-footer d-flex justify-content-between">
-                    <a href="{{ url_for('main.admin_manage_users', page=page, search=search_query or None) }}" class="admin-btn admin-btn-secondary">
+                    <a href="{{ url_for('main.admin_manage_users', page=page, search=search_query or None, role=role_filter) }}" class="admin-btn admin-btn-secondary">
                         <i class="fas fa-times me-2"></i>取消
                     </a>
                     <button type="submit" class="admin-btn admin-btn-primary">
@@ -820,8 +857,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // 確認刪除用戶
-    window.confirmDelete = function(displayNameOrUsername) {
-        return confirm(`您確定要刪除用戶 "${displayNameOrUsername}" 嗎？此操作無法復原，用戶的所有資料將被刪除。`);
+    window.confirmDelete = function(displayNameOrUsername, isAdmin) {
+        const userType = isAdmin ? '管理員' : '用戶';
+        return confirm(`您確定要刪除${userType} "${displayNameOrUsername}" 嗎？此操作無法復原，該用戶的所有資料將被刪除。`);
     };
 
     // 初始化函數

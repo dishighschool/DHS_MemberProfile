@@ -415,17 +415,18 @@ def error():
 
 # === 管理員區域 ===
 
+# === 管理員管理（重定向到統一的成員管理）===
 @main.route('/admin-panel/admin/manage-admins', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def admin_manage_admins():
-    """管理員管理頁面，顯示所有管理員和管理功能"""
-    # 處理 POST 請求 - 新增管理員
+    """重定向到成員管理頁面的管理員篩選"""
+    # 如果是 POST 請求（新增管理員）
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         if not username:
             flash('請輸入用戶名稱或電子郵件', 'danger')
-            return redirect(url_for('main.admin_manage_admins'))
+            return redirect(url_for('main.admin_manage_users', role='admin'))
         
         # 查找用戶 (根據用戶名或電子郵件)
         user = User.query.filter(
@@ -437,12 +438,12 @@ def admin_manage_admins():
         
         if not user:
             flash(f'找不到用戶: {username}', 'danger')
-            return redirect(url_for('main.admin_manage_admins'))
+            return redirect(url_for('main.admin_manage_users', role='admin'))
         
         # 確認用戶尚未是管理員
         if user.is_admin:
             flash(f'用戶 {user.display_name or user.username} 已經是管理員', 'info')
-            return redirect(url_for('main.admin_manage_admins'))
+            return redirect(url_for('main.admin_manage_users', role='admin'))
         
         # 將用戶設為管理員
         user.is_admin = True
@@ -453,82 +454,42 @@ def admin_manage_admins():
             db.session.rollback()
             flash(f'設置管理員失敗: {str(e)}', 'danger')
         
-        return redirect(url_for('main.admin_manage_admins'))
+        return redirect(url_for('main.admin_manage_users', role='admin'))
     
-    # GET 請求處理邏輯
+    # GET 請求 - 重定向到成員管理頁面，篩選管理員
     search_query = request.args.get('search', '').strip()
-    
-    # 基本查詢: 查找所有管理員
-    query = User.query.filter(User.is_admin == True)
-    
-    # 如果有搜索條件，應用過濾
-    if search_query:
-        search_term = f"%{search_query}%"
-        query = query.filter(
-            or_(
-                User.username.ilike(search_term),
-                User.display_name.ilike(search_term),
-                User.email.ilike(search_term)
-            )
-        )
-    
-    # 獲取管理員列表
-    admins = query.order_by(User.created_at.desc()).all()
-    
-    # 獲取統計信息
-    total_admins = User.query.filter_by(is_admin=True).count()
-    active_admins = total_admins  # 由於沒有 last_login 欄位，所以暫時設為所有管理員數量
-    
-    # 計算最近30天新增的管理員
-    thirty_days_ago = datetime.now() - timedelta(days=30)
-    new_admins = User.query.filter_by(is_admin=True).filter(User.created_at >= thirty_days_ago).count()
-    
-    # 獲取總用戶數（非管理員）
-    total_users = User.query.filter_by(is_admin=False).count()
-    
-    return render_template('admin_manage_admins.html',
-                           title='管理員設定',
-                           admins=admins,
-                           total_admins=total_admins,
-                           active_admins=active_admins,
-                           new_admins=new_admins,
-                           total_users=total_users,
-                           search_query=search_query,
-                           now=datetime.now())
+    return redirect(url_for('main.admin_manage_users', role='admin', search=search_query or None))
 
 @main.route('/admin-panel/admin/edit-admin/<int:admin_id>')
 @login_required
 @admin_required
 def admin_edit_admin(admin_id):
-    """管理員編輯其他管理員頁面"""
-    admin = User.query.filter_by(id=admin_id, is_admin=True).first_or_404()
-    
-    return render_template('admin_edit_admin.html',
-                          title=f'編輯管理員 - {admin.username}',
-                          admin=admin,
-                          now=datetime.now())
+    """重定向到統一的用戶編輯頁面"""
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('search', '')
+    return redirect(url_for('main.admin_edit_user', user_id=admin_id, page=page, search=search_query or None, role='admin'))
 
 @main.route('/admin-panel/admin/remove-admin-role/<int:user_id>', methods=['POST'])
 @login_required
 @admin_required
 def admin_remove_admin_role(user_id):
-    """移除管理員權限"""
+    """移除管理員權限（保留以維持向後兼容）"""
     if current_user.id == user_id:
         flash("您不能移除自己的管理員權限！", "danger")
-        return redirect(url_for('main.admin_manage_admins'))
+        return redirect(url_for('main.admin_manage_users', role='admin'))
     
     user = User.query.get_or_404(user_id)
-    username = user.username
+    username = user.display_name or user.username
     
     if not user.is_admin:
         flash(f"用戶 {username} 不是管理員", "warning")
-        return redirect(url_for('main.admin_manage_admins'))
+        return redirect(url_for('main.admin_manage_users', role='admin'))
     
     user.is_admin = False
     db.session.commit()
     
     flash(f"已成功移除 {username} 的管理員權限", "success")
-    return redirect(url_for('main.admin_manage_admins'))
+    return redirect(url_for('main.admin_manage_users', role='admin'))
 
 @main.route('/admin-panel/admin-dashboard')
 @login_required
@@ -577,55 +538,7 @@ def admin_dashboard():
                           admin_count=admin_count,
                           now=datetime.now())
 
-@main.route('/admin-panel/admin/update-admin/<int:admin_id>', methods=['POST'])
-@login_required
-@admin_required
-def admin_update_admin(admin_id):
-    """更新管理員資訊"""
-    admin_to_edit = User.query.filter_by(id=admin_id, is_admin=True).first_or_404()
-    
-    # 確保管理員不能移除自己的管理員權限
-    if admin_to_edit.id == current_user.id:
-        if not 'is_admin' in request.form:
-            flash("您不能移除自己的管理員權限！", "danger")
-            return redirect(url_for('main.admin_edit_admin', admin_id=admin_id))
-    
-    # 更新管理員資訊
-    admin_to_edit.display_name = request.form.get('display_name', '').strip() or None
-    admin_to_edit.email = request.form.get('email', '').strip() or None
-    
-    # 檢查是否更新密碼
-    new_password = request.form.get('new_password', '').strip()
-    confirm_password = request.form.get('confirm_password', '').strip()
-    
-    if new_password:
-        if new_password == confirm_password:
-            admin_to_edit.password = new_password  # 密碼哈希在模型中處理
-            flash("密碼已成功更新", "success")
-        else:
-            flash("新密碼與確認密碼不符，密碼未更新", "danger")
-            return redirect(url_for('main.admin_edit_admin', admin_id=admin_id))
-    
-    # 如果不是編輯自己，可以更改管理員權限
-    if admin_to_edit.id != current_user.id:
-        is_admin = 'is_admin' in request.form
-        admin_to_edit.is_admin = is_admin
-        
-        # 如果取消管理員權限，重定向到用戶管理
-        if not is_admin:
-            db.session.commit()
-            flash(f"已移除 {admin_to_edit.username} 的管理員權限", "success")
-            return redirect(url_for('main.admin_manage_admins'))
-    
-    # 儲存變更
-    try:
-        db.session.commit()
-        flash("管理員資訊已更新", "success")
-        return redirect(url_for('main.admin_manage_admins'))
-    except Exception as e:
-        db.session.rollback()
-        flash(f"更新失敗: {str(e)}", "danger")
-        return redirect(url_for('main.admin_edit_admin', admin_id=admin_id))
+# 舊的 admin_update_admin 路由已移除，現在使用統一的 admin_edit_user 路由
 
 # === 管理員公開頁面設定區域 ===
 @main.route('/admin-panel/admin/public-settings')
@@ -961,14 +874,22 @@ def admin_delete_tag(tag_id):
 @login_required
 @admin_required
 def admin_manage_users():
-    """獨立的成員管理頁面"""
+    """統一的成員管理頁面（包含管理員）"""
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('search', '', type=str).strip()
     tag_id = request.args.get('tag_id', None, type=int)
+    role_filter = request.args.get('role', 'all', type=str)  # 新增：角色過濾
     per_page = 15
     
-    # 基本查詢 - 排除管理員
-    query = User.query.filter(User.is_admin == False)
+    # 基本查詢 - 包含所有用戶
+    query = User.query
+    
+    # 根據角色過濾
+    if role_filter == 'admin':
+        query = query.filter(User.is_admin == True)
+    elif role_filter == 'user':
+        query = query.filter(User.is_admin == False)
+    # 'all' 則不過濾
     
     # 根據搜尋條件過濾
     if search_query:
@@ -1004,6 +925,7 @@ def admin_manage_users():
                            search_query=search_query,
                            all_tags=all_tags,
                            selected_tag=selected_tag,
+                           role_filter=role_filter,
                            now=datetime.now())
 
 @main.route('/admin-panel/admin/toggle-verify-user/<int:user_id>', methods=['POST'])
@@ -1012,11 +934,6 @@ def admin_manage_users():
 def admin_toggle_verify_user(user_id):
     """管理員切換用戶的驗證狀態（啟用/停用帳戶）"""
     user = User.query.get_or_404(user_id)
-    
-    # 確認不是管理員
-    if user.is_admin:
-        flash("無法變更管理員用戶的狀態", "danger")
-        return redirect(url_for('main.admin_manage_users'))
     
     # 切換驗證狀態
     user.is_verified = not user.is_verified
@@ -1031,15 +948,17 @@ def admin_toggle_verify_user(user_id):
         flash(f"操作失敗: {str(e)}", "danger")
     
     # 獲取重定向參數
-    page = request.args.get('page', 1, type=int)
-    search_query = request.args.get('search', '', type=str).strip()
-    tag_id = request.args.get('tag_id', None, type=int)
+    page = request.form.get('page', 1, type=int)
+    search_query = request.form.get('search', '', type=str).strip()
+    tag_id = request.form.get('tag_id', None, type=int)
+    role_filter = request.form.get('role', 'all', type=str)
     
     # 重定向回用戶列表頁面，保留搜尋和篩選狀態
     return redirect(url_for('main.admin_manage_users', 
                             page=page, 
                             search=search_query or None, 
-                            tag_id=tag_id))
+                            tag_id=tag_id,
+                            role=role_filter))
 
 @main.route('/admin-panel/admin/delete-user/<int:user_id>', methods=['POST'])
 @login_required
@@ -1048,33 +967,45 @@ def admin_delete_user(user_id):
     """管理員刪除用戶"""
     user = User.query.get_or_404(user_id)
     
-    # 確認不是管理員
-    if user.is_admin:
-        flash("無法刪除管理員用戶", "danger")
+    # 防止刪除自己
+    if user.id == current_user.id:
+        flash("您不能刪除自己的帳戶", "danger")
         return redirect(url_for('main.admin_manage_users'))
+    
+    # 如果目標是管理員，檢查註冊時間
+    if user.is_admin and user.created_at <= current_user.created_at:
+        flash("您無權刪除此管理員（該管理員註冊時間早於或等於您）", "danger")
+        page = request.form.get('page', 1, type=int)
+        search_query = request.form.get('search', '', type=str).strip()
+        tag_id = request.form.get('tag_id', None, type=int)
+        role_filter = request.form.get('role', 'all', type=str)
+        return redirect(url_for('main.admin_manage_users', page=page, search=search_query or None, tag_id=tag_id, role=role_filter))
     
     username = user.username
     display_name = user.display_name or username
+    user_role = "管理員" if user.is_admin else "用戶"
     
     try:
         # 刪除用戶及其所有相關數據（會自動通過模型中的 cascade 設定刪除關聯資料）
         db.session.delete(user)
         db.session.commit()
-        flash(f"用戶 {display_name} 已成功刪除", "success")
+        flash(f"{user_role} {display_name} 已成功刪除", "success")
     except Exception as e:
         db.session.rollback()
         flash(f"刪除失敗: {str(e)}", "danger")
     
     # 獲取重定向參數
-    page = request.args.get('page', 1, type=int)
-    search_query = request.args.get('search', '', type=str).strip()
-    tag_id = request.args.get('tag_id', None, type=int)
+    page = request.form.get('page', 1, type=int)
+    search_query = request.form.get('search', '', type=str).strip()
+    tag_id = request.form.get('tag_id', None, type=int)
+    role_filter = request.form.get('role', 'all', type=str)
     
     # 重定向回用戶列表頁面，保留搜尋和篩選狀態
     return redirect(url_for('main.admin_manage_users', 
                             page=page, 
                             search=search_query or None, 
-                            tag_id=tag_id))
+                            tag_id=tag_id,
+                            role=role_filter))
 
 @main.route('/admin-panel/admin/user/<int:user_id>/update-tags', methods=['POST'])
 @login_required
@@ -1097,14 +1028,15 @@ def admin_update_user_tags(user_id):
     db.session.commit()
     
     # 獲取重定向參數
-    page = request.args.get('page', 1, type=int)
-    search_query = request.args.get('search', '', type=str).strip()
-    tag_id = request.args.get('tag_id', None, type=int)
+    page = request.form.get('page', 1, type=int)
+    search_query = request.form.get('search', '', type=str).strip()
+    tag_id = request.form.get('tag_id', None, type=int)
+    role_filter = request.form.get('role', 'all', type=str)
     
     flash(f'已成功更新 {user.display_name or user.username} 的標籤', 'success')
     
     # 重定向回成員管理頁面，保留搜尋和篩選狀態
-    return redirect(url_for('main.admin_manage_users', page=page, search=search_query or None, tag_id=tag_id))
+    return redirect(url_for('main.admin_manage_users', page=page, search=search_query or None, tag_id=tag_id, role=role_filter))
 
 # === 管理員成員留言管理區域 ===
 @main.route('/admin-panel/admin/manage-testimonials')
@@ -1184,18 +1116,14 @@ def admin_edit_testimonial(testimonial_id):
 @login_required
 @admin_required
 def admin_edit_user(user_id):
-    """管理員編輯用戶頁面"""
+    """管理員編輯用戶頁面（包含管理員）"""
     # 獲取頁碼和搜尋關鍵字參數（用於返回正確的頁面）
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('search', '')
+    role_filter = request.args.get('role', 'all', type=str)
     
     # 獲取用戶資料
     user_to_edit = User.query.get_or_404(user_id)
-    
-    # 確保不是管理員
-    if user_to_edit.is_admin:
-        flash("無法編輯管理員用戶，請使用管理員編輯功能", "warning")
-        return redirect(url_for('main.admin_manage_users', page=page, search=search_query or None))
     
     # 獲取用戶個人資料和社交連結
     profile = UserProfile.get_or_create(user_to_edit.id)
@@ -1210,12 +1138,22 @@ def admin_edit_user(user_id):
         display_name = request.form.get('displayName', '').strip()
         user_to_edit.display_name = display_name if display_name else None
         
+        # 更新管理員狀態（只有在不是編輯自己且目標用戶註冊時間晚於當前管理員時才允許）
+        if user_to_edit.id != current_user.id:
+            # 檢查註冊時間：只有較早註冊的管理員才能修改較晚註冊的管理員權限
+            if user_to_edit.created_at > current_user.created_at:
+                is_admin = 'is_admin' in request.form
+                user_to_edit.is_admin = is_admin
+            elif 'is_admin' in request.form and not user_to_edit.is_admin:
+                # 如果目標用戶註冊時間早於或等於當前管理員，但當前不是管理員且表單要求設為管理員，則拒絕
+                flash("您無權修改此用戶的管理員權限（該用戶註冊時間早於或等於您）", "warning")
+        
         # 更新個人資料
         profile.title = request.form.get('profileTitle', '').strip()
         profile.bio = request.form.get('profileBio', '').strip()
         profile.interests = request.form.get('profile_interests', '').strip()
         
-        # 修復：更新背景漸層和主題色
+        # 更新背景漸層和主題色
         profile.background_gradient = request.form.get('background_gradient', '').strip()
         profile.main_color = request.form.get('main_color', '').strip()
         
@@ -1239,11 +1177,18 @@ def admin_edit_user(user_id):
                 )
                 db.session.add(link)
         
+        # 更新標籤
+        tag_ids = request.form.getlist('tags[]')
+        UserTag.query.filter_by(user_id=user_to_edit.id).delete()
+        for tag_id in tag_ids:
+            user_tag = UserTag(user_id=user_to_edit.id, tag_id=int(tag_id))
+            db.session.add(user_tag)
+        
         # 儲存所有變更
         try:
             db.session.commit()
-            flash(f"成功更新用戶 {user_to_edit.username} 的資料", "success")
-            return redirect(url_for('main.admin_manage_users', page=page, search=search_query or None))
+            flash(f"成功更新用戶 {user_to_edit.display_name or user_to_edit.username} 的資料", "success")
+            return redirect(url_for('main.admin_manage_users', page=page, search=search_query or None, role=role_filter))
         except Exception as e:
             db.session.rollback()
             flash(f"更新失敗: {str(e)}", "danger")
@@ -1258,11 +1203,12 @@ def admin_edit_user(user_id):
         })
     
     return render_template('admin_edit_user.html',
-                          title=f'編輯用戶 - {user_to_edit.username}',
+                          title=f'編輯用戶 - {user_to_edit.display_name or user_to_edit.username}',
                           user_to_edit=user_to_edit,
                           profile=profile,
                           social_links=social_links_json,
                           tags=tags,
                           page=page,
                           search_query=search_query,
+                          role_filter=role_filter,
                           now=datetime.now())

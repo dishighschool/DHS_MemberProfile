@@ -111,7 +111,7 @@
                             <span class="input-group-text" id="iconPreview">
                                 <i class="fas fa-globe"></i>
                             </span>
-                            <input type="text" class="form-control" id="icon_class" name="icon_class" value="fas fa-globe" readonly>
+                            <input type="text" class="form-control icon-picker-input" id="icon_class" name="icon_class" value="fas fa-globe" readonly>
                             <button class="btn btn-outline-secondary" type="button" id="iconSelectBtn">
                                 <i class="fas fa-icons"></i> 選擇
                             </button>
@@ -247,20 +247,10 @@
 
 {% block scripts %}
 {{ super() }}
-<script src="{{ url_for('static', filename='js/iconSelector.js') }}"></script>
+<script src="{{ url_for('static', filename='js/icon-picker-fontawesome.js') }}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // 初始化圖標選擇器
-        const iconSelector = IconSelector.init({
-            buttonSelector: '#iconSelectBtn',
-            iconInputSelector: '#icon_class',
-            iconPreviewSelector: '#iconPreview',
-            initialIcon: document.getElementById('icon_class').value || 'fas fa-globe',
-            onSelect: function(selectedIcon) {
-                document.getElementById('iconPreview').innerHTML = `<i class="${selectedIcon}"></i>`;
-                document.getElementById('icon_class').value = selectedIcon;
-            }
-        });
+        // 圖標選擇器會自動初始化（icon_class 輸入框有 icon-picker-input class）
 
         // 處理編輯按鈕點擊事件
         document.querySelectorAll('.edit-link-btn').forEach(function(button) {
@@ -284,7 +274,6 @@
                 // 設置圖標
                 document.getElementById('icon_class').value = iconClass;
                 document.getElementById('iconPreview').innerHTML = `<i class="${iconClass}"></i>`;
-                iconSelector.setSelectedIcon(iconClass);
 
                 // 修改表單標題及提交按鈕
                 document.getElementById('formTitle').innerHTML = '<i class="admin-card-icon fas fa-edit"></i> 編輯社群媒體連結';
@@ -303,7 +292,6 @@
             // 恢復默認圖標
             document.getElementById('icon_class').value = 'fas fa-globe';
             document.getElementById('iconPreview').innerHTML = '<i class="fas fa-globe"></i>';
-            iconSelector.setSelectedIcon('fas fa-globe');
             
             // 恢復表單標題和提交按鈕文本
             document.getElementById('formTitle').innerHTML = '<i class="admin-card-icon fas fa-plus-circle"></i> 新增社群媒體連結';

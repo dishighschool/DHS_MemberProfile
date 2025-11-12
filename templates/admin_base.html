@@ -690,14 +690,10 @@
                     <div class="sidebar-menu-text">儀表板</div>
                 </a>
                 
-                <div class="sidebar-menu-title">用戶管理</div>
+                <div class="sidebar-menu-title">成員管理</div>
                 <a href="{{ url_for('main.admin_manage_users') }}" class="sidebar-menu-item {% if request.path.startswith('/admin-panel/admin/manage-users') or request.path.startswith('/admin-panel/admin/user/') %}active{% endif %}">
                     <div class="sidebar-menu-icon"><i class="fas fa-users"></i></div>
                     <div class="sidebar-menu-text">成員管理</div>
-                </a>
-                <a href="{{ url_for('main.admin_manage_admins') }}" class="sidebar-menu-item {% if request.path.startswith('/admin-panel/admin/manage-admins') or request.path.startswith('/admin-panel/admin/edit-admin/') %}active{% endif %}">
-                    <div class="sidebar-menu-icon"><i class="fas fa-user-shield"></i></div>
-                    <div class="sidebar-menu-text">管理員設定</div>
                 </a>
                 <a href="{{ url_for('main.admin_manage_testimonials') }}" class="sidebar-menu-item {% if request.path.startswith('/admin-panel/admin/manage-testimonials') or request.path.startswith('/admin-panel/admin/testimonial/') %}active{% endif %}">
                     <div class="sidebar-menu-icon"><i class="fas fa-comment-dots"></i></div>

@@ -111,10 +111,7 @@
                             <span class="input-group-text" id="iconPreview">
                                 <i class="fas fa-link"></i>
                             </span>
-                            <input type="text" class="form-control" id="icon_class" name="icon_class" value="fas fa-link" readonly>
-                            <button class="btn btn-outline-secondary" type="button" id="iconSelectBtn">
-                                <i class="fas fa-icons"></i> 選擇
-                            </button>
+                            <input type="text" class="form-control icon-picker-input" id="icon_class" name="icon_class" value="fas fa-link" readonly>
                         </div>
                         <!-- 新增：不使用圖示的選項 -->
                         <div class="form-check mt-2">
@@ -264,32 +261,27 @@
 
 {% block scripts %}
 {{ super() }}
-<script src="{{ url_for('static', filename='js/iconSelector.js') }}"></script>
+<script src="{{ url_for('static', filename='js/icon-picker-fontawesome.js') }}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // 初始化圖標選擇器
-        const iconSelector = IconSelector.init({
-            buttonSelector: '#iconSelectBtn',
-            iconInputSelector: '#icon_class',
-            iconPreviewSelector: '#iconPreview',
-            initialIcon: document.getElementById('icon_class').value || 'fas fa-link',
-            onSelect: function(selectedIcon) {
-                document.getElementById('iconPreview').innerHTML = `<i class="${selectedIcon}"></i>`;
-                document.getElementById('icon_class').value = selectedIcon;
-            }
+        // Icon picker auto-initializes via .icon-picker-input class
+        
+        // Update preview when icon changes
+        const iconClass = document.getElementById('icon_class');
+        iconClass.addEventListener('change', function() {
+            const iconPreview = document.getElementById('iconPreview');
+            iconPreview.innerHTML = `<i class="${this.value}"></i>`;
         });
 
         // 處理不使用圖示選項
         const noIconCheckbox = document.getElementById('no_icon');
         const iconPreview = document.getElementById('iconPreview');
-        const iconClass = document.getElementById('icon_class');
-        const iconSelectBtn = document.getElementById('iconSelectBtn');
         
         noIconCheckbox.addEventListener('change', function() {
             if (this.checked) {
                 iconPreview.innerHTML = '<i class="fas fa-ban text-muted"></i>';
                 iconClass.value = '';
-                iconSelectBtn.disabled = true;
+                iconClass.disabled = true;
             } else {
                 const defaultIcon = 'fas fa-link';
                 iconPreview.innerHTML = `<i class="${defaultIcon}"></i>`;
@@ -324,13 +316,12 @@
                     document.getElementById('no_icon').checked = true;
                     document.getElementById('iconPreview').innerHTML = '<i class="fas fa-ban text-muted"></i>';
                     document.getElementById('icon_class').value = '';
-                    document.getElementById('iconSelectBtn').disabled = true;
+                    document.getElementById('icon_class').disabled = true;
                 } else {
                     document.getElementById('no_icon').checked = false;
                     document.getElementById('icon_class').value = iconClass;
                     document.getElementById('iconPreview').innerHTML = `<i class="${iconClass}"></i>`;
-                    document.getElementById('iconSelectBtn').disabled = false;
-                    iconSelector.setSelectedIcon(iconClass);
+                    document.getElementById('icon_class').disabled = false;
                 }
 
                 // 修改表單標題及提交按鈕
@@ -351,8 +342,7 @@
             document.getElementById('icon_class').value = 'fas fa-link';
             document.getElementById('iconPreview').innerHTML = '<i class="fas fa-link"></i>';
             document.getElementById('no_icon').checked = false;
-            document.getElementById('iconSelectBtn').disabled = false;
-            iconSelector.setSelectedIcon('fas fa-link');
+            document.getElementById('icon_class').disabled = false;
             
             // 恢復表單標題和提交按鈕文本
             document.getElementById('formTitle').innerHTML = '<i class="admin-card-icon fas fa-plus-circle"></i> 新增導航連結';

@@ -338,11 +338,8 @@
                                             <i class="{{ tag.icon_class if tag else 'fas fa-tag' }}"></i>
                                         </span>
                                     </span>
-                                    <input type="text" class="form-control" id="icon_class" name="icon_class" 
-                                           value="{{ tag.icon_class if tag else 'fas fa-tag' }}" placeholder="圖標類別">
-                                    <button class="btn btn-outline-secondary" type="button" id="iconSelectBtn">
-                                        <i class="fas fa-icons"></i> 選擇
-                                    </button>
+                                    <input type="text" class="form-control icon-picker-input" id="icon_class" name="icon_class" 
+                                           value="{{ tag.icon_class if tag else 'fas fa-tag' }}" placeholder="點擊選擇圖標" readonly>
                                 </div>
                                 <div class="form-text">Font Awesome 圖標類別</div>
                             </div>
@@ -562,13 +559,12 @@
 
 {% block scripts %}
 {{ super() }}
-<script src="{{ url_for('static', filename='js/iconSelector.js') }}"></script>
+<script src="{{ url_for('static', filename='js/icon-picker-fontawesome.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // 處理標籤編輯按鈕
     const tagId = document.getElementById('tag_id').value;
     if (tagId) {
-        // 我們在編輯模式，需要確保所有表單字段都已填充
         console.log("Tag edit mode activated for tag ID: " + tagId);
     }
     
@@ -591,7 +587,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 監聽表單輸入變化
     document.getElementById('color').addEventListener('input', updateTagPreview);
-    document.getElementById('icon_class').addEventListener('input', updateTagPreview);
+    document.getElementById('icon_class').addEventListener('change', updateTagPreview);
     document.getElementById('display_name').addEventListener('input', updateTagPreview);
     
     // 重置按鈕
@@ -599,15 +595,9 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(updateTagPreview, 10);
     });
     
-    // 初始化模組化圖標選擇器
-    const iconSelector = IconSelector.init({
-        buttonSelector: '#iconSelectBtn',
-        iconInputSelector: '#icon_class',
-        iconPreviewSelector: '#iconPreview',
-        initialIcon: document.getElementById('icon_class').value || 'fas fa-tag',
-        onSelect: function(selectedIcon) {
-            // 圖標選擇後更新預覽
-            updateTagPreview();
+    // 初始化簡化的圖標選擇器（自動處理）
+    // icon_class 輸入框已經有 icon-picker-input class，會自動初始化
+    updateTagPreview();
         }
     });
     

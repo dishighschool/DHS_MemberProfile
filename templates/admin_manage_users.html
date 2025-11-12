@@ -19,8 +19,9 @@
     <div class="admin-card-body">
         <div class="row g-3">
             <!-- 搜尋表單 -->
-            <div class="col-lg-8">
+            <div class="col-lg-6">
                 <form class="d-flex" action="{{ url_for('main.admin_manage_users') }}" method="GET">
+                    <input type="hidden" name="role" value="{{ role_filter }}">
                     <div class="input-group">
                         <input type="text" class="form-control" placeholder="搜尋用戶名、顯示名稱或 Discord ID..." 
                               name="search" value="{{ search_query or '' }}">
@@ -28,7 +29,7 @@
                             <i class="fas fa-search"></i> 搜尋
                         </button>
                         {% if search_query %}
-                        <a href="{{ url_for('main.admin_manage_users') }}" class="btn btn-outline-danger">
+                        <a href="{{ url_for('main.admin_manage_users', role=role_filter) }}" class="btn btn-outline-danger">
                             <i class="fas fa-times"></i> 清除
                         </a>
                         {% endif %}
@@ -36,14 +37,51 @@
                 </form>
             </div>
             
+            <!-- 角色過濾 -->
+            <div class="col-lg-3">
+                <div class="dropdown w-100">
+                    <button class="btn btn-outline-primary dropdown-toggle w-100" type="button" 
+                           id="roleFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user-tag me-1"></i> 
+                        {% if role_filter == 'admin' %}
+                        角色: 管理員
+                        {% elif role_filter == 'user' %}
+                        角色: 一般用戶
+                        {% else %}
+                        角色: 全部
+                        {% endif %}
+                    </button>
+                    <ul class="dropdown-menu w-100" aria-labelledby="roleFilterDropdown">
+                        <li>
+                            <a class="dropdown-item {% if role_filter == 'all' %}active{% endif %}" 
+                               href="{{ url_for('main.admin_manage_users', search=search_query or None, tag_id=selected_tag.id if selected_tag else None, role='all') }}">
+                                <i class="fas fa-users me-2"></i>全部成員
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item {% if role_filter == 'admin' %}active{% endif %}" 
+                               href="{{ url_for('main.admin_manage_users', search=search_query or None, tag_id=selected_tag.id if selected_tag else None, role='admin') }}">
+                                <i class="fas fa-user-shield me-2"></i>管理員
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item {% if role_filter == 'user' %}active{% endif %}" 
+                               href="{{ url_for('main.admin_manage_users', search=search_query or None, tag_id=selected_tag.id if selected_tag else None, role='user') }}">
+                                <i class="fas fa-user me-2"></i>一般用戶
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
             <!-- 標籤過濾 -->
-            <div class="col-lg-4">
+            <div class="col-lg-3">
                 <div class="dropdown w-100">
                     <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" 
                            id="tagFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-tags me-1"></i> 
                         {% if selected_tag %}
-                        按標籤過濾: {{ selected_tag.display_name }}
+                        標籤: {{ selected_tag.display_name }}
                         {% else %}
                         按標籤過濾
                         {% endif %}
@@ -51,7 +89,7 @@
                     <ul class="dropdown-menu w-100" aria-labelledby="tagFilterDropdown">
                         <li>
                             <a class="dropdown-item {% if not selected_tag %}active{% endif %}" 
-                               href="{{ url_for('main.admin_manage_users', search=search_query or None) }}">
+                               href="{{ url_for('main.admin_manage_users', search=search_query or None, role=role_filter) }}">
                                 所有標籤
                             </a>
                         </li>
@@ -59,7 +97,7 @@
                         {% for tag in all_tags %}
                         <li>
                             <a class="dropdown-item {% if selected_tag and selected_tag.id == tag.id %}active{% endif %}" 
-                               href="{{ url_for('main.admin_manage_users', tag_id=tag.id, search=search_query or None) }}">
+                               href="{{ url_for('main.admin_manage_users', tag_id=tag.id, search=search_query or None, role=role_filter) }}">
                                 <div style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: {{ tag.color }}; margin-right: 8px;"></div>
                                 {% if tag.icon_class %}<i class="{{ tag.icon_class }}"></i>{% endif %} 
                                 {{ tag.display_name }}
@@ -115,7 +153,12 @@
                         </td>
                         <td>
                             <div class="d-flex flex-column">
-                                <div class="fw-bold">{{ user.display_name or user.username }}</div>
+                                <div class="fw-bold">
+                                    {{ user.display_name or user.username }}
+                                    {% if user.is_admin %}
+                                    <span class="badge bg-danger ms-2"><i class="fas fa-shield-alt me-1"></i>管理員</span>
+                                    {% endif %}
+                                </div>
                                 <div class="text-muted small">@{{ user.username }}</div>
                                 <div class="text-muted small">{{ user.email or 'Email未設定' }}</div>
                                 <div class="text-muted small">加入於 {{ user.created_at.strftime('%Y-%m-%d') }}</div>
@@ -145,10 +188,16 @@
                         </td>
                         <td>
                             <div class="d-flex gap-2">
-                                <a href="{{ url_for('main.admin_edit_user', user_id=user.id, page=pagination.page if pagination else 1, search=search_query or None) }}" 
+                                {% if user.is_admin and user.created_at <= current_user.created_at and user.id != current_user.id %}
+                                <button type="button" class="admin-btn admin-btn-sm admin-btn-secondary" disabled data-bs-toggle="tooltip" title="無權編輯資深管理員">
+                                    <i class="fas fa-lock"></i>
+                                </button>
+                                {% else %}
+                                <a href="{{ url_for('main.admin_edit_user', user_id=user.id, page=pagination.page if pagination else 1, search=search_query or None, role=role_filter) }}" 
                                    class="admin-btn admin-btn-sm admin-btn-outline" data-bs-toggle="tooltip" title="編輯用戶">
                                     <i class="fas fa-edit"></i>
                                 </a>
+                                {% endif %}
                                 
                                 <button type="button" class="admin-btn admin-btn-sm admin-btn-outline" 
                                        data-bs-toggle="modal" data-bs-target="#tagModal{{ user.id }}" title="管理標籤">
@@ -159,6 +208,8 @@
                                      method="POST" class="d-inline">
                                     <input type="hidden" name="page" value="{{ pagination.page if pagination else 1 }}">
                                     <input type="hidden" name="search" value="{{ search_query or '' }}">
+                                    <input type="hidden" name="tag_id" value="{{ selected_tag.id if selected_tag else '' }}">
+                                    <input type="hidden" name="role" value="{{ role_filter }}">
                                     {% if user.is_verified %}
                                     <button type="submit" class="admin-btn admin-btn-sm admin-btn-warning" data-bs-toggle="tooltip" title="停用帳戶">
                                         <i class="fas fa-user-slash"></i>
@@ -170,14 +221,28 @@
                                     {% endif %}
                                 </form>
                                 
-                                <form action="{{ url_for('main.admin_delete_user', user_id=user.id) }}" 
-                                     method="POST" class="d-inline" onsubmit="return confirmDelete('{{ user.display_name or user.username }}')">
-                                    <input type="hidden" name="page" value="{{ pagination.page if pagination else 1 }}">
-                                    <input type="hidden" name="search" value="{{ search_query or '' }}">
-                                    <button type="submit" class="admin-btn admin-btn-sm admin-btn-danger" data-bs-toggle="tooltip" title="刪除帳戶">
-                                        <i class="fas fa-trash-alt"></i>
+                                {% if user.id != current_user.id %}
+                                    {% if user.is_admin and user.created_at <= current_user.created_at %}
+                                    <button type="button" class="admin-btn admin-btn-sm admin-btn-secondary" disabled data-bs-toggle="tooltip" title="無權刪除資深管理員">
+                                        <i class="fas fa-shield-alt"></i>
                                     </button>
-                                </form>
+                                    {% else %}
+                                    <form action="{{ url_for('main.admin_delete_user', user_id=user.id) }}" 
+                                         method="POST" class="d-inline" onsubmit="return confirmDelete('{{ user.display_name or user.username }}', {{ 'true' if user.is_admin else 'false' }})">
+                                        <input type="hidden" name="page" value="{{ pagination.page if pagination else 1 }}">
+                                        <input type="hidden" name="search" value="{{ search_query or '' }}">
+                                        <input type="hidden" name="tag_id" value="{{ selected_tag.id if selected_tag else '' }}">
+                                        <input type="hidden" name="role" value="{{ role_filter }}">
+                                        <button type="submit" class="admin-btn admin-btn-sm admin-btn-danger" data-bs-toggle="tooltip" title="刪除帳戶">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                {% else %}
+                                <button type="button" class="admin-btn admin-btn-sm admin-btn-secondary" disabled data-bs-toggle="tooltip" title="無法刪除自己">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                                {% endif %}
                             </div>
                             
                             <!-- 標籤管理模態框 -->
@@ -195,6 +260,7 @@
                                                  method="POST" id="tagForm{{ user.id }}">
                                                 <input type="hidden" name="page" value="{{ pagination.page if pagination else 1 }}">
                                                 <input type="hidden" name="search" value="{{ search_query or '' }}">
+                                                <input type="hidden" name="role" value="{{ role_filter }}">
                                                 {% if selected_tag %}
                                                 <input type="hidden" name="tag_id" value="{{ selected_tag.id }}">
                                                 {% endif %}
@@ -238,14 +304,14 @@
             <nav aria-label="用戶分頁">
                 <ul class="pagination justify-content-center mb-0">
                     <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('main.admin_manage_users', page=pagination.prev_num, search=search_query or None, tag_id=selected_tag.id if selected_tag else None) if pagination.has_prev else '#' }}" aria-label="上一頁">
+                        <a class="page-link" href="{{ url_for('main.admin_manage_users', page=pagination.prev_num, search=search_query or None, tag_id=selected_tag.id if selected_tag else None, role=role_filter) if pagination.has_prev else '#' }}" aria-label="上一頁">
                             <span aria-hidden="true">&laquo;</span>
                         </a>
                     </li>
                     {% for page_num in pagination.iter_pages() %}
                         {% if page_num %}
                             <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
-                                <a class="page-link" href="{{ url_for('main.admin_manage_users', page=page_num, search=search_query or None, tag_id=selected_tag.id if selected_tag else None) }}">
+                                <a class="page-link" href="{{ url_for('main.admin_manage_users', page=page_num, search=search_query or None, tag_id=selected_tag.id if selected_tag else None, role=role_filter) }}">
                                     {{ page_num }}
                                 </a>
                             </li>
@@ -256,7 +322,7 @@
                         {% endif %}
                     {% endfor %}
                     <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                        <a class="page-link" href="{{ url_for('main.admin_manage_users', page=pagination.next_num, search=search_query or None, tag_id=selected_tag.id if selected_tag else None) if pagination.has_next else '#' }}" aria-label="下一頁">
+                        <a class="page-link" href="{{ url_for('main.admin_manage_users', page=pagination.next_num, search=search_query or None, tag_id=selected_tag.id if selected_tag else None, role=role_filter) if pagination.has_next else '#' }}" aria-label="下一頁">
                             <span aria-hidden="true">&raquo;</span>
                         </a>
                     </li>
@@ -278,8 +344,10 @@
 {% block scripts %}
 {{ super() }}
 <script>
-function confirmDelete(displayNameOrUsername) {
-    return confirm(`您確定要刪除用戶 "${displayNameOrUsername}" 嗎？此操作無法復原。`);
+function confirmDelete(displayNameOrUsername, isAdmin) {
+    const userType = isAdmin ? '管理員' : '用戶';
+    const message = `您確定要刪除${userType} "${displayNameOrUsername}" 嗎？此操作無法復原，該用戶的所有資料將被刪除。`;
+    return confirm(message);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
