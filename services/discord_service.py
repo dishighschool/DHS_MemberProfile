@@ -220,18 +220,42 @@ def sync_user_tags_from_discord(discord_id: str) -> tuple[bool, str]:
         if mapping.role_id in member_role_ids:
             tag_ids_to_add.add(mapping.tag_id)
     
-    # 刪除用戶現有的所有標籤（僅限通過 Discord 對應的標籤）
+    # 獲取所有映射的標籤 ID
     mapped_tag_ids = {m.tag_id for m in role_mappings}
-    UserTag.query.filter(
+    
+    # 獲取用戶當前擁有的所有通過 Discord 對應的標籤
+    current_mapped_tags = UserTag.query.filter(
         UserTag.user_id == user.id,
         UserTag.tag_id.in_(mapped_tag_ids)
-    ).delete(synchronize_session=False)
+    ).all()
+    current_tag_ids = {ut.tag_id for ut in current_mapped_tags}
     
-    # 添加新標籤
-    for tag_id in tag_ids_to_add:
+    # 計算需要添加和刪除的標籤
+    tags_to_add = tag_ids_to_add - current_tag_ids
+    tags_to_remove = current_tag_ids - tag_ids_to_add
+    
+    # 刪除不需要的標籤
+    if tags_to_remove:
+        UserTag.query.filter(
+            UserTag.user_id == user.id,
+            UserTag.tag_id.in_(tags_to_remove)
+        ).delete(synchronize_session=False)
+    
+    # 添加新的標籤
+    for tag_id in tags_to_add:
         user_tag = UserTag(user_id=user.id, tag_id=tag_id)
         db.session.add(user_tag)
     
     db.session.commit()
     
-    return True, f"已同步 {len(tag_ids_to_add)} 個標籤"
+    # 構建詳細的同步結果訊息
+    messages = []
+    if tags_to_add:
+        messages.append(f"添加 {len(tags_to_add)} 個標籤")
+    if tags_to_remove:
+        messages.append(f"移除 {len(tags_to_remove)} 個標籤")
+    
+    if not messages:
+        return True, "標籤已是最新狀態，無需變更"
+    
+    return True, "，".join(messages)
