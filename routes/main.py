@@ -1505,23 +1505,15 @@ def admin_sync_user_tags(user_id):
 @admin_required
 def admin_sync_all_user_tags():
     """批次同步所有用戶的標籤"""
-    from services.discord_service import sync_user_tags_from_discord
+    from services.discord_service import sync_all_users_tags_from_discord
     
-    # 獲取所有已驗證的用戶
-    users = User.query.filter_by(is_verified=True).all()
+    try:
+        success, message = sync_all_users_tags_from_discord()
+        if success:
+            flash(message, "success")
+        else:
+            flash(message, "warning")
+    except Exception as e:
+        flash(f"批次同步失敗：{str(e)}", "danger")
     
-    success_count = 0
-    fail_count = 0
-    
-    for user in users:
-        try:
-            success, _ = sync_user_tags_from_discord(user.discord_id)
-            if success:
-                success_count += 1
-            else:
-                fail_count += 1
-        except Exception:
-            fail_count += 1
-    
-    flash(f"批次同步完成：成功 {success_count} 個，失敗 {fail_count} 個", "info")
     return redirect(request.referrer or url_for('main.admin_manage_users'))

@@ -139,6 +139,67 @@ class DiscordService:
             return member['roles']
         return []
     
+    def get_all_guild_members(self, guild_id: str, limit: int = 1000) -> List[Dict]:
+        """
+        獲取伺服器中的所有成員資訊（支持分頁）
+        
+        Args:
+            guild_id: Discord 伺服器 ID
+            limit: 最大獲取數量（預設 1000）
+            
+        Returns:
+            List[Dict]: 成員列表，每個元素包含 user 和 roles 資訊
+        """
+        members = []
+        after = None
+        
+        while len(members) < limit:
+            try:
+                params = {'limit': min(1000, limit - len(members))}  # Discord API 每次最多 1000 個
+                if after:
+                    params['after'] = after
+                
+                response = requests.get(
+                    f"{self.DISCORD_API_BASE}/guilds/{guild_id}/members",
+                    headers=self.headers,
+                    params=params,
+                    timeout=30  # 增加超時時間，因為批量請求可能較慢
+                )
+                
+                if response.status_code == 200:
+                    batch = response.json()
+                    if not batch:  # 沒有更多成員
+                        break
+                    
+                    members.extend(batch)
+                    after = batch[-1]['user']['id']  # 設置下次請求的起始點
+                    
+                    if len(batch) < 1000:  # 這是最後一批
+                        break
+                else:
+                    print(f"獲取成員列表失敗: {response.status_code} - {response.text}")
+                    break
+                    
+            except Exception as e:
+                print(f"獲取成員列表時發生錯誤: {str(e)}")
+                break
+        
+        return members[:limit]  # 確保不超過限制
+    
+    def get_members_roles_dict(self, guild_id: str, limit: int = 1000) -> Dict[str, List[str]]:
+        """
+        獲取伺服器中所有成員的角色字典
+        
+        Args:
+            guild_id: Discord 伺服器 ID
+            limit: 最大獲取數量
+            
+        Returns:
+            Dict[str, List[str]]: 用戶ID -> 角色ID列表 的字典
+        """
+        members = self.get_all_guild_members(guild_id, limit)
+        return {member['user']['id']: member.get('roles', []) for member in members}
+    
     def get_guild_info(self, guild_id: str) -> Optional[Dict]:
         """
         獲取伺服器的詳細資訊
@@ -206,10 +267,15 @@ def sync_user_tags_from_discord(discord_id: str) -> tuple[bool, str]:
     # 創建 Discord 服務
     discord_service = DiscordService(config.bot_token)
     
+    # 批量獲取所有成員角色信息
+    members_roles = discord_service.get_members_roles_dict(config.guild_id)
+    
+    # 檢查用戶是否在伺服器中
+    if discord_id not in members_roles:
+        return False, "用戶不在伺服器中"
+    
     # 獲取用戶在伺服器中的身分組
-    member_role_ids = discord_service.get_member_roles(config.guild_id, discord_id)
-    if not member_role_ids:
-        return False, "用戶不在伺服器中或無法獲取身分組資訊"
+    member_role_ids = members_roles[discord_id]
     
     # 獲取啟用的身分組標籤對應
     role_mappings = RoleTagMapping.get_active_mappings(config.id)
@@ -259,3 +325,106 @@ def sync_user_tags_from_discord(discord_id: str) -> tuple[bool, str]:
         return True, "標籤已是最新狀態，無需變更"
     
     return True, "，".join(messages)
+
+
+def sync_all_users_tags_from_discord() -> tuple[bool, str]:
+    """
+    批量同步所有系統用戶的 Discord 標籤
+    
+    Returns:
+        tuple[bool, str]: (是否成功, 訊息)
+    """
+    from models.user import User, UserTag, DiscordConfig, RoleTagMapping, db
+    
+    # 獲取 Discord 配置
+    config = DiscordConfig.get_active_config()
+    if not config or not config.guild_id:
+        return False, "Discord Bot 未配置或未選擇伺服器"
+    
+    # 獲取所有已驗證的系統用戶
+    system_users = User.query.filter_by(is_verified=True).all()
+    if not system_users:
+        return True, "沒有已驗證的用戶需要同步"
+    
+    # 創建 Discord 服務並批量獲取所有成員角色信息
+    discord_service = DiscordService(config.bot_token)
+    members_roles = discord_service.get_members_roles_dict(config.guild_id)
+    
+    # 獲取啟用的身分組標籤對應
+    role_mappings = RoleTagMapping.get_active_mappings(config.id)
+    if not role_mappings:
+        return True, "沒有啟用的角色標籤映射"
+    
+    # 創建角色ID到標籤ID的映射字典
+    role_to_tag_map = {mapping.role_id: mapping.tag_id for mapping in role_mappings}
+    
+    # 統計處理結果
+    success_count = 0
+    fail_count = 0
+    total_changes = 0
+    
+    for user in system_users:
+        try:
+            # 檢查用戶是否在 Discord 伺服器中
+            if user.discord_id not in members_roles:
+                fail_count += 1
+                continue
+            
+            # 獲取用戶在伺服器中的身分組
+            member_role_ids = members_roles[user.discord_id]
+            
+            # 找出應該擁有的標籤
+            tag_ids_to_add = set()
+            for role_id in member_role_ids:
+                if role_id in role_to_tag_map:
+                    tag_ids_to_add.add(role_to_tag_map[role_id])
+            
+            # 獲取所有映射的標籤 ID
+            mapped_tag_ids = set(role_to_tag_map.values())
+            
+            # 獲取用戶當前擁有的所有通過 Discord 對應的標籤
+            current_mapped_tags = UserTag.query.filter(
+                UserTag.user_id == user.id,
+                UserTag.tag_id.in_(mapped_tag_ids)
+            ).all()
+            current_tag_ids = {ut.tag_id for ut in current_mapped_tags}
+            
+            # 計算需要添加和刪除的標籤
+            tags_to_add = tag_ids_to_add - current_tag_ids
+            tags_to_remove = current_tag_ids - tag_ids_to_add
+            
+            # 執行標籤變更
+            changes_made = False
+            
+            # 刪除不需要的標籤
+            if tags_to_remove:
+                UserTag.query.filter(
+                    UserTag.user_id == user.id,
+                    UserTag.tag_id.in_(tags_to_remove)
+                ).delete(synchronize_session=False)
+                changes_made = True
+            
+            # 添加新的標籤
+            for tag_id in tags_to_add:
+                user_tag = UserTag(user_id=user.id, tag_id=tag_id)
+                db.session.add(user_tag)
+                changes_made = True
+            
+            if changes_made:
+                total_changes += 1
+            
+            success_count += 1
+            
+        except Exception as e:
+            print(f"同步用戶 {user.username} 時發生錯誤: {str(e)}")
+            fail_count += 1
+            continue
+    
+    db.session.commit()
+    
+    # 構建結果訊息
+    result_message = f"批量同步完成：處理 {len(system_users)} 個用戶，成功 {success_count} 個，失敗 {fail_count} 個"
+    if total_changes > 0:
+        result_message += f"，共變更 {total_changes} 個用戶的標籤"
+    
+    return True, result_message
