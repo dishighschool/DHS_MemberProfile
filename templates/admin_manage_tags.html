@@ -31,11 +31,12 @@
     .tag-list-item {
         background-color: #fff;
         border-radius: var(--border-radius);
-        padding: 15px;
-        margin-bottom: 15px;
+        padding: 12px;
+        margin-bottom: 12px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         border: 1px solid rgba(0,0,0,0.05);
         transition: transform 0.2s, box-shadow 0.2s;
+        height: 100%;
     }
     
     .tag-list-item:hover {
@@ -43,29 +44,44 @@
         box-shadow: 0 5px 15px rgba(0,0,0,0.08);
     }
     
+    .tag-list-item.is-inactive {
+        opacity: 0.6;
+        background-color: #f8f9fa;
+    }
+    
     .tag-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 15px;
+        margin-bottom: 10px;
+        gap: 8px;
     }
     
     .tag-title {
         display: flex;
         align-items: center;
-        gap: 10px;
-        font-size: 1.1rem;
+        gap: 8px;
+        font-size: 0.95rem;
         font-weight: 600;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .tag-title > div {
+        min-width: 0;
+        flex: 1;
     }
     
     .tag-title-icon {
-        width: 32px;
-        height: 32px;
+        width: 28px;
+        height: 28px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
+        font-size: 0.9rem;
+        flex-shrink: 0;
     }
     
     .tag-actions {
@@ -76,17 +92,18 @@
     .tag-details {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 6px;
+        margin-bottom: 8px;
     }
     
     .tag-detail {
-        font-size: 0.85rem;
-        padding: 4px 10px;
+        font-size: 0.75rem;
+        padding: 3px 8px;
         border-radius: 4px;
         background-color: #f8f9fa;
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 4px;
         border: 1px solid rgba(0,0,0,0.05);
     }
     
@@ -100,13 +117,55 @@
     }
     
     .tag-description {
-        margin-top: 10px;
-        font-size: 0.9rem;
+        margin-top: 6px;
+        font-size: 0.8rem;
         color: #6c757d;
+        line-height: 1.4;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
+    }
+    
+    /* 拖拉排序樣式 */
+    .tag-sortable-item {
+        cursor: grab;
+        transition: transform 0.2s;
+    }
+    
+    .tag-sortable-item:active {
+        cursor: grabbing;
+    }
+    
+    .tag-sortable-ghost {
+        opacity: 0.4;
+    }
+    
+    .tag-sortable-drag {
+        opacity: 0.8;
+        transform: rotate(5deg);
+    }
+    
+    .tag-drag-handle {
+        cursor: grab;
+        color: #6c757d;
+        padding: 0 8px;
+        font-size: 1.2rem;
+        opacity: 0.5;
+        transition: opacity 0.2s, color 0.2s;
+    }
+    
+    .tag-drag-handle:hover {
+        opacity: 1;
+        color: var(--primary-color);
+    }
+    
+    .tag-drag-handle:active {
+        cursor: grabbing;
+    }
+    
+    .tag-list-item:hover .tag-drag-handle {
+        opacity: 0.8;
     }
     
     .tag-form-section {
@@ -187,6 +246,16 @@
     
     .icon-search {
         margin-bottom: 10px;
+    }
+    
+    .tag-stats-badge {
+        background-color: rgba(108, 92, 231, 0.1);
+        color: var(--primary-color);
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
     }
     
     .tag-empty-state {
@@ -339,7 +408,7 @@
                                         </span>
                                     </span>
                                     <input type="text" class="form-control icon-picker-input" id="icon_class" name="icon_class" 
-                                           value="{{ tag.icon_class if tag else 'fas fa-tag' }}" placeholder="點擊選擇圖標" readonly>
+                                           value="{{ tag.icon_class if tag else 'fas fa-tag' }}" placeholder="點擊選擇圖標或直接輸入（如 fas fa-home）">
                                 </div>
                                 <div class="form-text">Font Awesome 圖標類別</div>
                             </div>
@@ -417,11 +486,18 @@
     </div>
     <div class="admin-card-body">
         {% if tags %}
-        <div class="row">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            拖曳標籤卡片可以調整顯示順序，成員列表將按標籤順序排列
+        </div>
+        <div class="row" id="tagsSortable">
             {% for tag in tags %} 
-            <div class="col-md-6 col-xl-4">
+            <div class="col-md-6 col-xl-4 tag-sortable-item" data-tag-id="{{ tag.id }}">
                 <div class="tag-list-item {{ 'is-inactive' if not tag.is_active }}">
                     <div class="tag-header">
+                        <div class="tag-drag-handle" title="拖曳調整順序">
+                            <i class="fas fa-grip-vertical"></i>
+                        </div>
                         <div class="tag-title">
                             <div class="tag-title-icon" style="background-color: {{ tag.color }};">
                                 <i class="{{ tag.icon_class or 'fas fa-tag' }}"></i>
@@ -559,6 +635,8 @@
 
 {% block scripts %}
 {{ super() }}
+<!-- Sortable.js for drag and drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="{{ url_for('static', filename='js/icon-picker-fontawesome.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -595,11 +673,68 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(updateTagPreview, 10);
     });
     
-    // 初始化簡化的圖標選擇器（自動處理）
-    // icon_class 輸入框已經有 icon-picker-input class，會自動初始化
-    updateTagPreview();
-        }
-    });
+    // 初始化拖拉排序
+    const tagsSortable = document.getElementById('tagsSortable');
+    if (tagsSortable) {
+        new Sortable(tagsSortable, {
+            animation: 150,
+            handle: '.tag-drag-handle',
+            ghostClass: 'tag-sortable-ghost',
+            dragClass: 'tag-sortable-drag',
+            onEnd: function(evt) {
+                // 更新順序
+                const tagItems = tagsSortable.querySelectorAll('.tag-sortable-item');
+                const tagOrders = [];
+                
+                tagItems.forEach((item, index) => {
+                    tagOrders.push({
+                        id: parseInt(item.getAttribute('data-tag-id')),
+                        order: index
+                    });
+                });
+                
+                // 發送 AJAX 請求更新順序
+                fetch('{{ url_for("main.admin_update_tag_order") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ tag_orders: tagOrders })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 顯示成功訊息
+                        showToast('success', '標籤順序已更新');
+                    } else {
+                        showToast('error', '更新失敗: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', '更新順序時發生錯誤');
+                });
+            }
+        });
+    }
+    
+    // Toast 通知函數
+    function showToast(type, message) {
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+        toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+        toast.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+            ${message}
+        `;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.3s';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
     
     // 初始化預覽
     updateTagPreview();

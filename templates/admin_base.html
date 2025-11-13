@@ -723,6 +723,10 @@
                     <div class="sidebar-menu-icon"><i class="fas fa-key"></i></div>
                     <div class="sidebar-menu-text">註冊金鑰管理</div>
                 </a>
+                <a href="{{ url_for('main.admin_api_documentation') }}" class="sidebar-menu-item {% if request.path == url_for('main.admin_api_documentation') %}active{% endif %}">
+                    <div class="sidebar-menu-icon"><i class="fas fa-code"></i></div>
+                    <div class="sidebar-menu-text">API 文檔</div>
+                </a>
                 
                 <div class="sidebar-menu-title">系統</div>
                 <a href="{{ url_for('main.index') }}" class="sidebar-menu-item" target="_blank">

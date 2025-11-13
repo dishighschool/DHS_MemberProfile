@@ -1,0 +1,407 @@
+{% extends "admin_base.html" %}
+
+{% block title %}API 文檔{% endblock %}
+{% block header_title %}API 文檔{% endblock %}
+
+{% block page_icon_class %}fas fa-code{% endblock %}
+{% block page_title %}API 文檔{% endblock %}
+{% block page_subtitle %}供其他服務使用的 API 接口說明{% endblock %}
+
+{% block content %}
+<!-- API 總覽 -->
+<div class="admin-card mb-4">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-info-circle"></i>
+            API 總覽
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        <div class="alert alert-info">
+            <i class="fas fa-lightbulb me-2"></i>
+            此 API 提供給其他服務使用，讓外部系統能夠根據 Discord User ID 獲取用戶的個人頁面 URL。
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <h5><i class="fas fa-globe me-2"></i>基本信息</h5>
+                <ul class="list-unstyled">
+                    <li><strong>Base URL:</strong> <code>{{ base_url }}</code></li>
+                    <li><strong>請求方法:</strong> <span class="badge bg-success">GET</span></li>
+                    <li><strong>響應格式:</strong> <span class="badge bg-primary">JSON</span></li>
+                    <li><strong>身份驗證:</strong> <span class="badge bg-secondary">無需驗證</span></li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h5><i class="fas fa-shield-alt me-2"></i>安全說明</h5>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check text-success me-2"></i>僅返回已驗證用戶的信息</li>
+                    <li><i class="fas fa-check text-success me-2"></i>不會洩露敏感用戶數據</li>
+                    <li><i class="fas fa-check text-success me-2"></i>支持 CORS 跨域請求</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- API 端點 -->
+<div class="admin-card mb-4">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-plug"></i>
+            API 端點
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        <div class="endpoint-card">
+            <div class="endpoint-header">
+                <span class="badge bg-success method-badge">GET</span>
+                <code class="endpoint-url">{{ api_endpoint }}&lt;discord_id&gt;</code>
+            </div>
+            <div class="endpoint-description">
+                <p>根據 Discord User ID 獲取用戶的個人頁面 URL</p>
+                <div class="mt-3">
+                    <strong>參數說明：</strong>
+                    <ul>
+                        <li><code>discord_id</code> (路徑參數): Discord 用戶的唯一識別碼</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 請求示例 -->
+<div class="admin-card mb-4">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-code"></i>
+            請求示例
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        <h5>cURL 示例</h5>
+        <div class="code-block">
+            <pre><code>curl -X GET "{{ api_endpoint }}123456789012345678" \
+  -H "Accept: application/json"</code></pre>
+            <button class="btn btn-sm btn-outline-secondary copy-btn" onclick="copyToClipboard('curl-example')">
+                <i class="fas fa-copy"></i> 複製
+            </button>
+        </div>
+
+        <h5 class="mt-4">JavaScript (fetch) 示例</h5>
+        <div class="code-block">
+            <pre><code id="js-example">const discordId = "123456789012345678";
+const apiUrl = "{{ api_endpoint }}" + discordId;
+
+fetch(apiUrl)
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      console.log("用戶個人頁面:", data.profile_url);
+      console.log("用戶名稱:", data.username);
+      console.log("顯示名稱:", data.display_name);
+    } else {
+      console.error("錯誤:", data.message);
+    }
+  })
+  .catch(error => console.error("請求失敗:", error));</code></pre>
+            <button class="btn btn-sm btn-outline-secondary copy-btn" onclick="copyToClipboard('js-example')">
+                <i class="fas fa-copy"></i> 複製
+            </button>
+        </div>
+
+        <h5 class="mt-4">Python 示例</h5>
+        <div class="code-block">
+            <pre><code id="python-example">import requests
+
+discord_id = "123456789012345678"
+api_url = "{{ api_endpoint }}" + discord_id
+
+response = requests.get(api_url)
+data = response.json()
+
+if data['success']:
+    print(f"用戶個人頁面: {data['profile_url']}")
+    print(f"用戶名稱: {data['username']}")
+    print(f"顯示名稱: {data['display_name']}")
+else:
+    print(f"錯誤: {data['message']}")</code></pre>
+            <button class="btn btn-sm btn-outline-secondary copy-btn" onclick="copyToClipboard('python-example')">
+                <i class="fas fa-copy"></i> 複製
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 響應格式 -->
+<div class="admin-card mb-4">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-exchange-alt"></i>
+            響應格式
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        <h5>成功響應 (HTTP 200)</h5>
+        <div class="code-block">
+            <pre><code>{
+  "success": true,
+  "discord_id": "123456789012345678",
+  "username": "user123",
+  "display_name": "用戶顯示名稱",
+  "profile_url": "https://your-domain.com/user/user123",
+  "user_id": 42
+}</code></pre>
+        </div>
+
+        <h5 class="mt-4">錯誤響應 (HTTP 404)</h5>
+        <div class="code-block">
+            <pre><code>{
+  "success": false,
+  "error": "User not found or not verified",
+  "message": "找不到該用戶或用戶尚未驗證"
+}</code></pre>
+        </div>
+
+        <h5 class="mt-4">錯誤響應 (HTTP 500)</h5>
+        <div class="code-block">
+            <pre><code>{
+  "success": false,
+  "error": "Internal server error",
+  "message": "伺服器內部錯誤"
+}</code></pre>
+        </div>
+    </div>
+</div>
+
+<!-- 錯誤代碼說明 -->
+<div class="admin-card mb-4">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-exclamation-triangle"></i>
+            錯誤代碼說明
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>HTTP 狀態碼</th>
+                        <th>錯誤類型</th>
+                        <th>說明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge bg-success">200</span></td>
+                        <td>成功</td>
+                        <td>請求成功，返回用戶信息</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bg-warning">404</span></td>
+                        <td>用戶不存在</td>
+                        <td>找不到指定的 Discord ID 或用戶尚未驗證</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bg-danger">500</span></td>
+                        <td>伺服器錯誤</td>
+                        <td>伺服器內部錯誤，請稍後重試</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 使用限制 -->
+<div class="admin-card mb-4">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-shield-alt"></i>
+            使用限制與注意事項
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>重要提醒：</strong>此 API 僅供授權的服務使用，請勿用於惡意目的。
+        </div>
+
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item">
+                <i class="fas fa-clock me-2 text-info"></i>
+                <strong>請求限制：</strong>目前無請求頻率限制，但請合理使用
+            </li>
+            <li class="list-group-item">
+                <i class="fas fa-user-secret me-2 text-info"></i>
+                <strong>隱私保護：</strong>僅返回公開信息，不包含敏感用戶數據
+            </li>
+            <li class="list-group-item">
+                <i class="fas fa-link me-2 text-info"></i>
+                <strong>URL 格式：</strong>返回的個人頁面 URL 為絕對路徑，包含協議和域名
+            </li>
+            <li class="list-group-item">
+                <i class="fas fa-user-check me-2 text-info"></i>
+                <strong>用戶驗證：</strong>僅返回已通過驗證的活躍用戶信息
+            </li>
+        </ul>
+    </div>
+</div>
+
+<!-- 測試工具 -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h3 class="admin-card-title">
+            <i class="admin-card-icon fas fa-flask"></i>
+            API 測試工具
+        </h3>
+    </div>
+    <div class="admin-card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="input-group mb-3">
+                    <span class="input-group-text">Discord ID</span>
+                    <input type="text" class="form-control" id="test-discord-id" placeholder="輸入 Discord User ID 進行測試" value="123456789012345678">
+                    <button class="btn btn-primary" type="button" onclick="testAPI()">
+                        <i class="fas fa-play me-1"></i> 測試 API
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="test-result" class="mt-3" style="display: none;">
+            <h6>測試結果：</h6>
+            <div class="code-block">
+                <pre id="test-response">等待測試結果...</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// 複製到剪貼板功能
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    const text = element.textContent || element.innerText;
+
+    navigator.clipboard.writeText(text).then(function() {
+        // 顯示成功提示
+        const button = event.target.closest('.copy-btn');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i> 已複製';
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-success');
+
+        setTimeout(() => {
+            button.innerHTML = originalText;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-secondary');
+        }, 2000);
+    }).catch(function(err) {
+        console.error('複製失敗:', err);
+        alert('複製失敗，請手動複製');
+    });
+}
+
+// API 測試功能
+async function testAPI() {
+    const discordId = document.getElementById('test-discord-id').value.trim();
+    const resultDiv = document.getElementById('test-result');
+    const responsePre = document.getElementById('test-response');
+
+    if (!discordId) {
+        alert('請輸入 Discord ID');
+        return;
+    }
+
+    // 顯示測試結果區域
+    resultDiv.style.display = 'block';
+    responsePre.textContent = '正在測試...';
+
+    try {
+        const apiUrl = "{{ api_endpoint }}" + discordId;
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        // 格式化 JSON 響應
+        responsePre.textContent = JSON.stringify(data, null, 2);
+
+        // 添加語法高亮類
+        responsePre.className = 'language-json';
+
+    } catch (error) {
+        responsePre.textContent = `測試失敗: ${error.message}`;
+        console.error('API 測試錯誤:', error);
+    }
+}
+
+// 頁面載入時隱藏測試結果
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('test-result').style.display = 'none';
+});
+</script>
+<style>
+.endpoint-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.endpoint-header {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.method-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.endpoint-url {
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    background-color: #e9ecef;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.endpoint-description {
+    padding: 1rem;
+}
+
+.code-block {
+    position: relative;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.code-block pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.code-block .copy-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+}
+
+.language-json {
+    color: #0056b3;
+}
+</style>
+{% endblock %}

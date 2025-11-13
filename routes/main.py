@@ -48,6 +48,17 @@ def index():
         user.profile = profile
         active_users.append(user)
     
+    # 根據用戶的標籤順序進行排序
+    # 用戶按其第一個標籤的 display_order 排序，沒有標籤的排在最後
+    def get_user_sort_key(user):
+        if user.tags:
+            # 取得用戶所有標籤中 display_order 最小的值
+            min_order = min(tag.display_order for tag in user.tags if tag.is_active)
+            return (0, min_order, user.created_at)  # 有標籤的排前面
+        return (1, 999999, user.created_at)  # 沒有標籤的排後面
+    
+    active_users.sort(key=get_user_sort_key)
+    
     return render_template('public_home.html', 
                           title='成員列表', 
                           users=active_users,
@@ -380,6 +391,42 @@ def get_profile_data():
         'testimonial': testimonial_data
     })
 
+# 根據 Discord User ID 獲取用戶個人頁面 URL 的 API
+@main.route('/api/user-profile-url/<discord_id>', methods=['GET'])
+def get_user_profile_url_by_discord_id(discord_id):
+    """根據 Discord User ID 獲取用戶的個人頁面 URL"""
+    try:
+        # 根據 Discord ID 查找用戶
+        user = User.get_by_discord_id(discord_id)
+
+        # 檢查用戶是否存在且已驗證
+        if not user or not user.is_verified:
+            return jsonify({
+                'success': False,
+                'error': 'User not found or not verified',
+                'message': '找不到該用戶或用戶尚未驗證'
+            }), 404
+
+        # 生成個人頁面 URL
+        profile_url = url_for('main.public_profile', username=user.username, _external=True)
+
+        return jsonify({
+            'success': True,
+            'discord_id': discord_id,
+            'username': user.username,
+            'display_name': user.display_name,
+            'profile_url': profile_url,
+            'user_id': user.id
+        })
+
+    except Exception as e:
+        print(f"Error getting user profile URL: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error',
+            'message': '伺服器內部錯誤'
+        }), 500
+
 # 個人檔案預覽
 @main.route('/admin-panel/preview/profile')
 @login_required
@@ -539,6 +586,21 @@ def admin_dashboard():
                           now=datetime.now())
 
 # 舊的 admin_update_admin 路由已移除，現在使用統一的 admin_edit_user 路由
+
+@main.route('/admin-panel/admin/api-documentation')
+@login_required
+@admin_required
+def admin_api_documentation():
+    """API 文檔和使用說明頁面"""
+    # 獲取當前應用的基本信息
+    base_url = request.host_url.rstrip('/')
+    api_endpoint = f"{base_url}/api/user-profile-url/"
+
+    return render_template('admin_api_documentation.html',
+                          title='API 文檔',
+                          base_url=base_url,
+                          api_endpoint=api_endpoint,
+                          now=datetime.now())
 
 # === 管理員公開頁面設定區域 ===
 @main.route('/admin-panel/admin/public-settings')
@@ -868,6 +930,34 @@ def admin_delete_tag(tag_id):
     
     flash(f'標籤 "{display_name}" 已成功刪除', 'success')
     return redirect(url_for('main.admin_manage_tags'))
+
+@main.route('/admin-panel/admin/update-tag-order', methods=['POST'])
+@login_required
+@admin_required
+def admin_update_tag_order():
+    """更新標籤排序"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': '無效的請求數據'}), 400
+        
+        tag_orders = data.get('tag_orders', [])
+        
+        # 更新每個標籤的 display_order
+        for item in tag_orders:
+            tag_id = item.get('id')
+            order = item.get('order')
+            
+            tag = Tag.query.get(tag_id)
+            if tag:
+                tag.display_order = order
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': '標籤順序已更新'})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'更新失敗: {str(e)}'}), 500
 
 # === 成員管理 ===
 @main.route('/admin-panel/admin/manage-users')
