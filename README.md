@@ -1,7 +1,7 @@
-# Project Title: dhs-personPage
+# Project Title: dhs-personPage 3.0
 
 ## Description
-dhs-personPage is a Flask web application designed to manage user profiles and provide a user-friendly interface for interaction. This project serves as a foundation for building more complex applications and includes essential features such as user management, error handling, and a responsive design.
+dhs-personPage 3.0 is a comprehensive Flask web application for DisHighSchool member management. It features Discord OAuth authentication, member profile management, tag system, testimonials, and **Discord Bot integration** for automatic tag assignment based on Discord roles. This system provides both a public-facing member showcase and a powerful admin backend.
 
 ## Project Structure
 ```
@@ -47,9 +47,47 @@ dhs-personPage
    pip install -r requirements.txt
    ```
 
+## Features
+
+### Core Features
+- **Discord OAuth2 Authentication**: Secure login via Discord
+- **Member Profiles**: Customizable profiles with social links, bio, and tags
+- **Tag System**: Categorize members with customizable tags
+- **Admin Dashboard**: Comprehensive backend for managing users, tags, and content
+- **Testimonials**: Member feedback system with approval workflow
+- **Public Homepage**: Showcase all active members with filtering capabilities
+
+### 🆕 Discord Bot Integration (New in 3.0)
+- **Automatic Tag Assignment**: Assign tags based on Discord server roles
+- **Bot Token Configuration**: Easy setup through admin panel
+- **Server Selection**: Choose which Discord server to integrate with
+- **Role-Tag Mapping**: Map Discord roles to system tags
+- **Auto-sync on Registration**: Automatically assign tags when new members register
+- **Manual Sync**: One-click sync for existing members (individual or batch)
+
+For detailed Discord Bot setup and usage, see [DISCORD_BOT_GUIDE.md](DISCORD_BOT_GUIDE.md)
+
 ## Usage
-To run the application, execute the following command:
-```
+
+### Running the Application
+```bash
 python app.py
 ```
-Visit `http://127.0.0.1:5000` in your web browser to access the application.
+Visit `http://127.0.0.1:2005` or `http://<server-ip>:2005` in your browser.
+
+### Production Deployment
+```bash
+gunicorn -c gunicorn_config.py wsgi:app
+```
+
+### Database Migration
+If upgrading from a previous version, run the Discord Bot migration:
+```bash
+python migrations/add_discord_tables.py
+```
+
+### Testing Discord Integration
+To test Discord Bot functionality before configuring in the admin panel:
+```bash
+python test_discord_integration.py
+```

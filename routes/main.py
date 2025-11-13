@@ -1,11 +1,12 @@
 import os
 from flask import Blueprint, render_template, redirect, url_for, flash, session, request, current_app, abort, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
-from models.user import User, UserProfile, SocialLink, PublicSocialLink, NavLink, Tag, UserTag, UserTestimonial, db
+from models.user import User, UserProfile, SocialLink, PublicSocialLink, NavLink, Tag, UserTag, UserTestimonial, DiscordConfig, RoleTagMapping, db
 from functools import wraps
 from datetime import datetime, timedelta
 import secrets
 from sqlalchemy import or_
+from services.discord_service import DiscordService
 
 main = Blueprint('main', __name__)
 
@@ -181,6 +182,21 @@ def verify():
             is_verified=True,
             is_admin=is_admin_signup # Set admin status based on key
         )
+        
+        # 如果啟用了自動同步且不是管理員，則自動同步標籤
+        if not is_admin_signup:
+            discord_config = DiscordConfig.get_active_config()
+            if discord_config and discord_config.auto_sync_on_register:
+                try:
+                    from services.discord_service import sync_user_tags_from_discord
+                    success, message = sync_user_tags_from_discord(session["discord_id"])
+                    if success:
+                        print(f"自動同步標籤成功: {message}")
+                    else:
+                        print(f"自動同步標籤失敗: {message}")
+                except Exception as e:
+                    print(f"自動同步標籤時發生錯誤: {str(e)}")
+        
         login_user(user)
         
         # 清除 session 中的暫存資訊
@@ -1302,3 +1318,211 @@ def admin_edit_user(user_id):
                           search_query=search_query,
                           role_filter=role_filter,
                           now=datetime.now())
+
+# ========== Discord Bot 設定路由 ==========
+
+@main.route('/admin-panel/admin/discord-settings', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def admin_discord_settings():
+    """Discord Bot 設定頁面"""
+    config = DiscordConfig.get_active_config()
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        # 保存 Bot Token
+        if action == 'save_token':
+            bot_token = request.form.get('bot_token', '').strip()
+            
+            if not bot_token:
+                flash("請輸入 Bot Token", "warning")
+                return redirect(url_for('main.admin_discord_settings'))
+            
+            # 驗證 Token
+            discord_service = DiscordService(bot_token)
+            if not discord_service.verify_token():
+                flash("Bot Token 無效，請檢查後重試", "danger")
+                return redirect(url_for('main.admin_discord_settings'))
+            
+            # 如果已有配置，更新；否則創建新配置
+            if config:
+                config.bot_token = bot_token
+                config.updated_at = datetime.utcnow()
+            else:
+                config = DiscordConfig(bot_token=bot_token)
+                db.session.add(config)
+            
+            db.session.commit()
+            flash("Bot Token 已成功保存並驗證", "success")
+            return redirect(url_for('main.admin_discord_settings'))
+        
+        # 選擇伺服器
+        elif action == 'select_guild':
+            guild_id = request.form.get('guild_id', '').strip()
+            guild_name = request.form.get('guild_name', '').strip()
+            
+            if not config:
+                flash("請先設定 Bot Token", "warning")
+                return redirect(url_for('main.admin_discord_settings'))
+            
+            config.guild_id = guild_id
+            config.guild_name = guild_name
+            config.updated_at = datetime.utcnow()
+            db.session.commit()
+            
+            flash(f"已選擇伺服器：{guild_name}", "success")
+            return redirect(url_for('main.admin_discord_settings'))
+        
+        # 切換自動同步設定
+        elif action == 'toggle_auto_sync':
+            if not config:
+                flash("請先設定 Bot Token", "warning")
+                return redirect(url_for('main.admin_discord_settings'))
+            
+            config.auto_sync_on_register = not config.auto_sync_on_register
+            config.updated_at = datetime.utcnow()
+            db.session.commit()
+            
+            status = "啟用" if config.auto_sync_on_register else "停用"
+            flash(f"註冊時自動同步標籤已{status}", "success")
+            return redirect(url_for('main.admin_discord_settings'))
+    
+    # GET 請求 - 顯示設定頁面
+    guilds = []
+    roles = []
+    
+    if config and config.bot_token:
+        discord_service = DiscordService(config.bot_token)
+        guilds = discord_service.get_bot_guilds()
+        
+        if config.guild_id:
+            roles = discord_service.get_guild_roles(config.guild_id)
+    
+    # 獲取所有標籤
+    tags = Tag.get_active_tags()
+    
+    # 獲取當前的身分組標籤對應
+    role_mappings = []
+    if config:
+        role_mappings = RoleTagMapping.query.filter_by(
+            discord_config_id=config.id,
+            is_active=True
+        ).all()
+    
+    return render_template('admin_discord_settings.html',
+                          title='Discord Bot 設定',
+                          config=config,
+                          guilds=guilds,
+                          roles=roles,
+                          tags=tags,
+                          role_mappings=role_mappings,
+                          now=datetime.now())
+
+@main.route('/admin-panel/admin/discord-settings/add-role-mapping', methods=['POST'])
+@login_required
+@admin_required
+def admin_add_role_mapping():
+    """添加身分組標籤對應"""
+    config = DiscordConfig.get_active_config()
+    
+    if not config or not config.guild_id:
+        flash("請先配置 Discord Bot 並選擇伺服器", "warning")
+        return redirect(url_for('main.admin_discord_settings'))
+    
+    role_id = request.form.get('role_id', '').strip()
+    role_name = request.form.get('role_name', '').strip()
+    tag_id = request.form.get('tag_id', type=int)
+    
+    if not role_id or not role_name or not tag_id:
+        flash("請填寫完整的對應資訊", "warning")
+        return redirect(url_for('main.admin_discord_settings'))
+    
+    # 檢查是否已存在相同的對應
+    existing = RoleTagMapping.query.filter_by(
+        discord_config_id=config.id,
+        role_id=role_id,
+        is_active=True
+    ).first()
+    
+    if existing:
+        # 更新現有對應
+        existing.role_name = role_name
+        existing.tag_id = tag_id
+        existing.updated_at = datetime.utcnow()
+        flash("已更新身分組標籤對應", "success")
+    else:
+        # 創建新對應
+        mapping = RoleTagMapping(
+            discord_config_id=config.id,
+            role_id=role_id,
+            role_name=role_name,
+            tag_id=tag_id
+        )
+        db.session.add(mapping)
+        flash("已添加身分組標籤對應", "success")
+    
+    db.session.commit()
+    return redirect(url_for('main.admin_discord_settings'))
+
+@main.route('/admin-panel/admin/discord-settings/delete-role-mapping/<int:mapping_id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_role_mapping(mapping_id):
+    """刪除身分組標籤對應"""
+    mapping = RoleTagMapping.query.get_or_404(mapping_id)
+    
+    # 軟刪除
+    mapping.is_active = False
+    mapping.updated_at = datetime.utcnow()
+    db.session.commit()
+    
+    flash("已刪除身分組標籤對應", "success")
+    return redirect(url_for('main.admin_discord_settings'))
+
+@main.route('/admin-panel/admin/sync-user-tags/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_sync_user_tags(user_id):
+    """同步單個用戶的標籤"""
+    from services.discord_service import sync_user_tags_from_discord
+    
+    user = User.query.get_or_404(user_id)
+    
+    try:
+        success, message = sync_user_tags_from_discord(user.discord_id)
+        if success:
+            flash(message, "success")
+        else:
+            flash(message, "warning")
+    except Exception as e:
+        flash(f"同步失敗：{str(e)}", "danger")
+    
+    # 返回到成員管理頁面
+    return redirect(request.referrer or url_for('main.admin_manage_users'))
+
+@main.route('/admin-panel/admin/sync-all-user-tags', methods=['POST'])
+@login_required
+@admin_required
+def admin_sync_all_user_tags():
+    """批次同步所有用戶的標籤"""
+    from services.discord_service import sync_user_tags_from_discord
+    
+    # 獲取所有已驗證的非管理員用戶
+    users = User.query.filter_by(is_verified=True, is_admin=False).all()
+    
+    success_count = 0
+    fail_count = 0
+    
+    for user in users:
+        try:
+            success, _ = sync_user_tags_from_discord(user.discord_id)
+            if success:
+                success_count += 1
+            else:
+                fail_count += 1
+        except Exception:
+            fail_count += 1
+    
+    flash(f"批次同步完成：成功 {success_count} 個，失敗 {fail_count} 個", "info")
+    return redirect(request.referrer or url_for('main.admin_manage_users'))

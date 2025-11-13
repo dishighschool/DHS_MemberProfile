@@ -218,3 +218,52 @@ class UserTag(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
     tag_id = db.Column(db.Integer, db.ForeignKey('tags.id'), primary_key=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# Discord Bot 配置
+class DiscordConfig(db.Model):
+    __tablename__ = 'discord_config'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    bot_token = db.Column(db.String(255), nullable=False)  # Discord Bot Token
+    guild_id = db.Column(db.String(128), nullable=True)  # 選定的伺服器 ID
+    guild_name = db.Column(db.String(128), nullable=True)  # 伺服器名稱
+    is_active = db.Column(db.Boolean, default=True)  # 是否啟用
+    auto_sync_on_register = db.Column(db.Boolean, default=True)  # 註冊時自動同步標籤
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<DiscordConfig {self.guild_name}>'
+    
+    @classmethod
+    def get_active_config(cls):
+        """獲取當前啟用的 Discord 配置"""
+        return cls.query.filter_by(is_active=True).first()
+
+# Discord 身分組與標籤的對應關係
+class RoleTagMapping(db.Model):
+    __tablename__ = 'role_tag_mapping'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    discord_config_id = db.Column(db.Integer, db.ForeignKey('discord_config.id'), nullable=False)
+    role_id = db.Column(db.String(128), nullable=False)  # Discord 身分組 ID
+    role_name = db.Column(db.String(128), nullable=False)  # Discord 身分組名稱
+    tag_id = db.Column(db.Integer, db.ForeignKey('tags.id'), nullable=False)  # 對應的系統標籤
+    is_active = db.Column(db.Boolean, default=True)  # 是否啟用
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # 關聯
+    discord_config = db.relationship('DiscordConfig', backref=db.backref('role_mappings', lazy=True, cascade='all, delete-orphan'))
+    tag = db.relationship('Tag', backref=db.backref('role_mappings', lazy=True))
+    
+    def __repr__(self):
+        return f'<RoleTagMapping {self.role_name} -> Tag {self.tag_id}>'
+    
+    @classmethod
+    def get_active_mappings(cls, discord_config_id=None):
+        """獲取啟用的身分組標籤對應"""
+        query = cls.query.filter_by(is_active=True)
+        if discord_config_id:
+            query = query.filter_by(discord_config_id=discord_config_id)
+        return query.all()

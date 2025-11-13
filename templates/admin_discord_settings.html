@@ -1,0 +1,240 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Discord Bot 設定{% endblock %}
+{% block header_title %}Discord Bot 設定{% endblock %}
+{% block page_icon_class %}fab fa-discord{% endblock %}
+{% block page_title %}Discord Bot 設定{% endblock %}
+{% block page_subtitle %}配置 Discord Bot 權杖，選擇伺服器，並設定身分組與標籤的對應關係{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Bot Token 設定 -->
+    <div class="col-12 col-lg-6 mb-4">
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h5 class="admin-card-title">
+                    <i class="fas fa-key admin-card-icon"></i>
+                    Bot Token 設定
+                </h5>
+            </div>
+            <div class="admin-card-body">
+                <form method="POST">
+                    <input type="hidden" name="action" value="save_token">
+                    <div class="mb-3">
+                        <label for="bot_token" class="form-label">Discord Bot Token</label>
+                        <input type="password" class="form-control" id="bot_token" name="bot_token" 
+                               value="{{ config.bot_token if config else '' }}" 
+                               placeholder="請輸入 Discord Bot Token" required>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle"></i> 
+                            在 <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a> 創建應用程式並獲取 Bot Token
+                        </div>
+                    </div>
+                    <button type="submit" class="admin-btn admin-btn-primary">
+                        <i class="fas fa-save"></i> 保存並驗證
+                    </button>
+                </form>
+                
+                {% if config and config.bot_token %}
+                <div class="mt-3 alert alert-success">
+                    <i class="fas fa-check-circle"></i> Bot Token 已配置
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- 伺服器選擇 -->
+    <div class="col-12 col-lg-6 mb-4">
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h5 class="admin-card-title">
+                    <i class="fas fa-server admin-card-icon"></i>
+                    選擇 Discord 伺服器
+                </h5>
+            </div>
+            <div class="admin-card-body">
+                {% if config and config.bot_token %}
+                    {% if guilds %}
+                    <form method="POST">
+                        <input type="hidden" name="action" value="select_guild">
+                        <div class="mb-3">
+                            <label for="guild_select" class="form-label">選擇伺服器</label>
+                            <select class="form-select" id="guild_select" name="guild_id" onchange="updateGuildName()" required>
+                                <option value="">-- 請選擇 --</option>
+                                {% for guild in guilds %}
+                                <option value="{{ guild.id }}" data-name="{{ guild.name }}" 
+                                        {% if config.guild_id == guild.id %}selected{% endif %}>
+                                    {{ guild.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <input type="hidden" id="guild_name" name="guild_name" value="{{ config.guild_name if config.guild_name else '' }}">
+                        </div>
+                        <button type="submit" class="admin-btn admin-btn-primary">
+                            <i class="fas fa-check"></i> 確認選擇
+                        </button>
+                    </form>
+                    
+                    {% if config.guild_name %}
+                    <div class="mt-3 alert alert-info">
+                        <i class="fas fa-server"></i> 當前伺服器：<strong>{{ config.guild_name }}</strong>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> Bot 尚未加入任何伺服器，或無法獲取伺服器列表
+                    </div>
+                    {% endif %}
+                {% else %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> 請先設定 Bot Token
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 自動同步設定 -->
+{% if config and config.guild_id %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h5 class="admin-card-title">
+                    <i class="fas fa-sync-alt admin-card-icon"></i>
+                    自動同步設定
+                </h5>
+            </div>
+            <div class="admin-card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6>註冊時自動同步標籤</h6>
+                        <p class="text-muted mb-0">
+                            <small>啟用後，新成員註冊時會根據其 Discord 身分組自動分配標籤</small>
+                        </p>
+                    </div>
+                    <form method="POST" class="d-inline">
+                        <input type="hidden" name="action" value="toggle_auto_sync">
+                        <button type="submit" class="admin-btn {% if config.auto_sync_on_register %}admin-btn-success{% else %}admin-btn-secondary{% endif %}">
+                            <i class="fas fa-toggle-{% if config.auto_sync_on_register %}on{% else %}off{% endif %}"></i>
+                            {% if config.auto_sync_on_register %}已啟用{% else %}已停用{% endif %}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 身分組與標籤對應 -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h5 class="admin-card-title">
+                    <i class="fas fa-exchange-alt admin-card-icon"></i>
+                    身分組與標籤對應
+                </h5>
+            </div>
+            <div class="admin-card-body">
+                <!-- 添加對應表單 -->
+                <form method="POST" action="{{ url_for('main.admin_add_role_mapping') }}" class="mb-4">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label for="role_select" class="form-label">Discord 身分組</label>
+                            <select class="form-select" id="role_select" name="role_id" onchange="updateRoleName()" required>
+                                <option value="">-- 請選擇身分組 --</option>
+                                {% for role in roles %}
+                                <option value="{{ role.id }}" data-name="{{ role.name }}" 
+                                        style="color: {{ '#%06x' % role.color if role.color else '#99AAB5' }}">
+                                    {{ role.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <input type="hidden" id="role_name" name="role_name">
+                        </div>
+                        <div class="col-md-5">
+                            <label for="tag_select" class="form-label">系統標籤</label>
+                            <select class="form-select" id="tag_select" name="tag_id" required>
+                                <option value="">-- 請選擇標籤 --</option>
+                                {% for tag in tags %}
+                                <option value="{{ tag.id }}">{{ tag.display_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="admin-btn admin-btn-primary w-100">
+                                <i class="fas fa-plus"></i> 添加
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- 現有對應列表 -->
+                {% if role_mappings %}
+                <div class="table-responsive">
+                    <table class="admin-table table">
+                        <thead>
+                            <tr>
+                                <th>Discord 身分組</th>
+                                <th>系統標籤</th>
+                                <th>創建時間</th>
+                                <th style="width: 100px;">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mapping in role_mappings %}
+                            <tr>
+                                <td>
+                                    <i class="fab fa-discord" style="color: #5865F2;"></i>
+                                    {{ mapping.role_name }}
+                                </td>
+                                <td>
+                                    <span class="admin-tag admin-tag-primary" style="background-color: {{ mapping.tag.color }}20; color: {{ mapping.tag.color }};">
+                                        <i class="{{ mapping.tag.icon_class }}"></i>
+                                        {{ mapping.tag.display_name }}
+                                    </span>
+                                </td>
+                                <td>{{ mapping.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('main.admin_delete_role_mapping', mapping_id=mapping.id) }}" 
+                                          onsubmit="return confirm('確定要刪除此對應嗎？')" class="d-inline">
+                                        <button type="submit" class="admin-btn admin-btn-sm admin-btn-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 尚未設定任何身分組與標籤的對應關係
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function updateGuildName() {
+    const select = document.getElementById('guild_select');
+    const option = select.options[select.selectedIndex];
+    const guildName = option.getAttribute('data-name') || '';
+    document.getElementById('guild_name').value = guildName;
+}
+
+function updateRoleName() {
+    const select = document.getElementById('role_select');
+    const option = select.options[select.selectedIndex];
+    const roleName = option.getAttribute('data-name') || '';
+    document.getElementById('role_name').value = roleName;
+}
+</script>
+{% endblock %}

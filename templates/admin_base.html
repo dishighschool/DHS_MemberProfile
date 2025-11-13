@@ -719,6 +719,10 @@
                     <div class="sidebar-menu-icon"><i class="fas fa-share-alt"></i></div>
                     <div class="sidebar-menu-text">社交媒體連結</div>
                 </a>
+                <a href="{{ url_for('main.admin_discord_settings') }}" class="sidebar-menu-item {% if request.path == url_for('main.admin_discord_settings') %}active{% endif %}">
+                    <div class="sidebar-menu-icon"><i class="fab fa-discord"></i></div>
+                    <div class="sidebar-menu-text">Discord Bot 設定</div>
+                </a>
                 <a href="{{ url_for('main.admin_manage_keys') }}" class="sidebar-menu-item {% if request.path == url_for('main.admin_manage_keys') %}active{% endif %}">
                     <div class="sidebar-menu-icon"><i class="fas fa-key"></i></div>
                     <div class="sidebar-menu-text">註冊金鑰管理</div>
