@@ -205,18 +205,16 @@
                                 </a>
                                 {% endif %}
                                 
-                                <button type="button" class="admin-btn admin-btn-sm admin-btn-outline" 
+                                <button type="button" class="admin-btn admin-btn-sm admin-btn-outline"
                                        data-bs-toggle="modal" data-bs-target="#tagModal{{ user.id }}" title="管理標籤">
                                     <i class="fas fa-tags"></i>
                                 </button>
-                                
-                                {% if not user.is_admin %}
+
                                 <form method="POST" action="{{ url_for('main.admin_sync_user_tags', user_id=user.id) }}" class="d-inline">
                                     <button type="submit" class="admin-btn admin-btn-sm admin-btn-info" data-bs-toggle="tooltip" title="同步 Discord 標籤">
                                         <i class="fab fa-discord"></i>
                                     </button>
                                 </form>
-                                {% endif %}
                                 
                                 <form action="{{ url_for('main.admin_toggle_verify_user', user_id=user.id) }}" 
                                      method="POST" class="d-inline">

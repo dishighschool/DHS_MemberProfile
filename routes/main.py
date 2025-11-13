@@ -183,19 +183,18 @@ def verify():
             is_admin=is_admin_signup # Set admin status based on key
         )
         
-        # 如果啟用了自動同步且不是管理員，則自動同步標籤
-        if not is_admin_signup:
-            discord_config = DiscordConfig.get_active_config()
-            if discord_config and discord_config.auto_sync_on_register:
-                try:
-                    from services.discord_service import sync_user_tags_from_discord
-                    success, message = sync_user_tags_from_discord(session["discord_id"])
-                    if success:
-                        print(f"自動同步標籤成功: {message}")
-                    else:
-                        print(f"自動同步標籤失敗: {message}")
-                except Exception as e:
-                    print(f"自動同步標籤時發生錯誤: {str(e)}")
+        # 如果啟用了自動同步，則自動同步標籤
+        discord_config = DiscordConfig.get_active_config()
+        if discord_config and discord_config.auto_sync_on_register:
+            try:
+                from services.discord_service import sync_user_tags_from_discord
+                success, message = sync_user_tags_from_discord(session["discord_id"])
+                if success:
+                    print(f"自動同步標籤成功: {message}")
+                else:
+                    print(f"自動同步標籤失敗: {message}")
+            except Exception as e:
+                print(f"自動同步標籤時發生錯誤: {str(e)}")
         
         login_user(user)
         
@@ -1508,8 +1507,8 @@ def admin_sync_all_user_tags():
     """批次同步所有用戶的標籤"""
     from services.discord_service import sync_user_tags_from_discord
     
-    # 獲取所有已驗證的非管理員用戶
-    users = User.query.filter_by(is_verified=True, is_admin=False).all()
+    # 獲取所有已驗證的用戶
+    users = User.query.filter_by(is_verified=True).all()
     
     success_count = 0
     fail_count = 0
