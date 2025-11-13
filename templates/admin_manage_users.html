@@ -23,8 +23,8 @@
                 <form class="d-flex" action="{{ url_for('main.admin_manage_users') }}" method="GET">
                     <input type="hidden" name="role" value="{{ role_filter }}">
                     <div class="input-group">
-                        <input type="text" class="form-control" placeholder="搜尋用戶名、顯示名稱或 Discord ID..." 
-                              name="search" value="{{ search_query or '' }}">
+                        <input type="text" class="form-control" placeholder="搜尋用戶名、顯示名稱或 Discord ID..."
+                              name="search" value="{{ search_query or '' }}" autocomplete="off" spellcheck="false">
                         <button class="btn btn-primary" type="submit">
                             <i class="fas fa-search"></i> 搜尋
                         </button>
